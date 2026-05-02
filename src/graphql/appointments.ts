@@ -1,0 +1,211 @@
+import { gql } from 'urql';
+
+export const APPOINTMENT_FIELDS = `
+  id
+  doctor_id
+  nurse_id
+  patient_name
+  patient_dob
+  doctor_name
+  nurse_name
+  time_slot_from
+  time_slot_to
+  state
+  meeting_link
+  room_id
+  room_sid
+  additional_note
+  soap_note
+  soap_note_status
+  soap_note_document_id
+  soap_note_request_id
+  is_doctor_in_call
+  is_nurse_in_call
+  location {
+    id
+    location_name
+    address
+  }
+  prescriptions {
+    prescription_id
+    prescription_state
+    prescription_request_id
+  }
+  doctor {
+    user {
+      display_name
+      profile {
+        first_name
+        last_name
+        email
+        avatar_url
+      }
+    }
+  }
+  nurse {
+    user {
+      display_name
+      profile {
+        first_name
+        last_name
+        email
+        avatar_url
+      }
+    }
+  }
+`;
+
+export const GET_DOCTOR_APPOINTMENTS = gql`
+  query GetDoctorAppointments($doctor_id: uuid!, $states: [appointments_state_enum_enum!]) {
+    appointments(
+      where: {
+        doctor_id: { _eq: $doctor_id }
+        state: { _in: $states }
+      }
+      order_by: { time_slot_from: asc }
+    ) {
+      ${APPOINTMENT_FIELDS}
+    }
+  }
+`;
+
+export const GET_NURSE_APPOINTMENTS = gql`
+  query GetNurseAppointments($nurse_id: uuid!, $states: [appointments_state_enum_enum!]) {
+    appointments(
+      where: {
+        nurse_id: { _eq: $nurse_id }
+        state: { _in: $states }
+      }
+      order_by: { time_slot_from: asc }
+    ) {
+      ${APPOINTMENT_FIELDS}
+    }
+  }
+`;
+
+export const GET_APPOINTMENT_BY_ID = gql`
+  query GetAppointmentById($appointment_id: uuid!) {
+    appointments_by_pk(id: $appointment_id) {
+      ${APPOINTMENT_FIELDS}
+      patient_vitals {
+        id
+        appointment_id
+        blood_pressure
+        blood_pressure_systolic
+        blood_pressure_diastolic
+        heart_rate
+        respiratory_rate
+        temperature
+        oximetry
+        weight
+        height
+        images
+      }
+      waiting_room {
+        id
+        status
+      }
+    }
+  }
+`;
+
+export const SUBSCRIBE_APPOINTMENT = gql`
+  subscription SubscribeAppointment($appointment_id: uuid!) {
+    appointments_by_pk(id: $appointment_id) {
+      id
+      state
+      is_doctor_in_call
+      is_nurse_in_call
+      room_id
+      room_sid
+    }
+  }
+`;
+
+export const UPDATE_APPOINTMENT = gql`
+  mutation UpdateAppointment($appointment_id: uuid!, $set: appointments_set_input!) {
+    update_appointments_by_pk(pk_columns: { id: $appointment_id }, _set: $set) {
+      id
+      state
+    }
+  }
+`;
+
+export const INSERT_PATIENT_VITALS = gql`
+  mutation InsertPatientVitals($object: patient_vitals_insert_input!) {
+    insert_patient_vitals_one(object: $object) {
+      id
+    }
+  }
+`;
+
+export const GET_LOCATION_BY_NURSE_ID = gql`
+  query GetLocationByNurseId($user_id: uuid!) {
+    nurses(where: { user_id: { _eq: $user_id } }) {
+      id
+      location {
+        id
+        location_name
+      }
+    }
+  }
+`;
+
+export const GET_DOCTORS_FOR_APPOINTMENT = gql`
+  query GetDoctorsForAppointment($location_id: uuid) {
+    doctors(
+      where: {
+        is_validated: { _neq: REJECTED }
+        is_active: { _eq: true }
+        _or: [
+          { is_public: { _eq: true } }
+          { locations: { location_id: { _eq: $location_id } } }
+        ]
+      }
+      order_by: { user: { display_name: asc } }
+    ) {
+      id
+      user {
+        display_name
+        profile {
+          avatar_url
+          first_name
+          last_name
+        }
+      }
+    }
+  }
+`;
+
+export const GET_DOCTOR_WEEKLY_AVAILABILITY = gql`
+  query GetDoctorWeeklyAvailability($doctor_id: uuid) {
+    doctor_weekly_availability(where: { doctor_id: { _eq: $doctor_id } }) {
+      available_from
+      available_till
+      day
+      doctor_data {
+        user {
+          profile {
+            timezone
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const CREATE_APPOINTMENT = gql`
+  mutation CreateAppointment($object: NewAppointmentInput!) {
+    newAppointment(object: $object) {
+      appointment_id
+    }
+  }
+`;
+
+export const GET_CALL_TOKEN = gql`
+  mutation GetCallToken($object: GetCallTokenInput!) {
+    getCallToken(object: $object) {
+      twilio_token
+    }
+  }
+`;
