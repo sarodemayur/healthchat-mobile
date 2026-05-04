@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "HealthChat",
+    "name": "Gal3n Health",
     "slug": "healthchat-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/gal3n-icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#3DBCA2"
     },
@@ -16,14 +16,14 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.healthchat.mobile",
       "infoPlist": {
-        "NSCameraUsageDescription": "HealthChat needs camera access for video consultations.",
-        "NSMicrophoneUsageDescription": "HealthChat needs microphone access for video consultations.",
-        "NSPhotoLibraryUsageDescription": "HealthChat needs photo library access to upload patient vitals images."
+        "NSCameraUsageDescription": "Gal3n needs camera access for video consultations.",
+        "NSMicrophoneUsageDescription": "Gal3n needs microphone access for video consultations.",
+        "NSPhotoLibraryUsageDescription": "Gal3n needs photo library access to upload patient vitals images."
       }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/gal3n-icon.png",
         "backgroundColor": "#3DBCA2"
       },
       "package": "com.healthchat.mobile",
@@ -39,7 +39,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "HealthChat needs camera access for video consultations."
+          "cameraPermission": "Gal3n needs camera access for video consultations."
         }
       ]
     ]
