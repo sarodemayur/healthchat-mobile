@@ -88,7 +88,21 @@ export function DoctorAppointmentsScreen({ navigation }: Props) {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>📅</Text>
+            <View style={styles.calendarCard}>
+              <View style={styles.calendarHeader}>
+                <Text style={styles.calendarMonth}>
+                  {new Date()
+                    .toLocaleDateString("en-US", { month: "long" })
+                    .toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.calendarBody}>
+                <Text style={styles.calendarDay}>{new Date().getDate()}</Text>
+                <Text style={styles.calendarYear}>
+                  {new Date().getFullYear()}
+                </Text>
+              </View>
+            </View>
             <Text style={styles.emptyTitle}>No appointments</Text>
             <Text style={styles.emptyText}>
               {tabIndex === 0
@@ -127,7 +141,50 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  emptyIcon: { fontSize: 48, marginBottom: 16 },
+  calendarCard: {
+    width: 100,
+    borderRadius: 16,
+    overflow: "hidden",
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  calendarHeader: {
+    backgroundColor: PRIMARY_COLOR,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  calendarMonth: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: 1.5,
+  },
+  calendarBody: {
+    backgroundColor: "#fff",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: BORDER_COLOR,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+  },
+  calendarDay: {
+    fontSize: 38,
+    fontWeight: "800",
+    color: TEXT_COLOR,
+    lineHeight: 42,
+  },
+  calendarYear: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: TEXT_COLOR_LIGHT,
+    marginTop: 2,
+  },
   emptyTitle: {
     fontSize: 18,
     fontWeight: "700",

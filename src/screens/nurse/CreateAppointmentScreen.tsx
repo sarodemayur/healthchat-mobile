@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,14 +12,24 @@ import {
   TextInput,
   ActivityIndicator,
   Dimensions,
-} from 'react-native';
-import { useMutation, useQuery } from 'urql';
-import { addMinutes, isBefore, isSameDay, addMonths, subMonths, getDaysInMonth, getDay, startOfMonth, startOfDay } from 'date-fns';
-import { Ionicons } from '@expo/vector-icons';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useAuth } from '../../context/AuthContext';
-import { Button } from '../../components/common/Button';
-import { Input } from '../../components/common/Input';
+} from "react-native";
+import { useMutation, useQuery } from "urql";
+import {
+  addMinutes,
+  isBefore,
+  isSameDay,
+  addMonths,
+  subMonths,
+  getDaysInMonth,
+  getDay,
+  startOfMonth,
+  startOfDay,
+} from "date-fns";
+import { Ionicons } from "@expo/vector-icons";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useAuth } from "../../context/AuthContext";
+import { Button } from "../../components/common/Button";
+import { Input } from "../../components/common/Input";
 import {
   BORDER_COLOR,
   PRIMARY_COLOR,
@@ -28,28 +38,46 @@ import {
   TEXT_COLOR_LIGHT,
   SURFACE_COLOR,
   ERROR_COLOR,
-} from '../../utils/config';
+} from "../../utils/config";
 import {
   GET_LOCATION_BY_NURSE_ID,
   GET_DOCTORS_FOR_APPOINTMENT,
   GET_DOCTOR_WEEKLY_AVAILABILITY,
   CREATE_APPOINTMENT,
-} from '../../graphql/appointments';
-import type { NurseStackParamList } from '../../navigation/types';
+} from "../../graphql/appointments";
+import type { NurseStackParamList } from "../../navigation/types";
 
-type Props = NativeStackScreenProps<NurseStackParamList, 'CreateAppointment'>;
+type Props = NativeStackScreenProps<NurseStackParamList, "CreateAppointment">;
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CALENDAR_PADDING = 32;
 const CELL_SIZE = Math.floor((SCREEN_WIDTH - CALENDAR_PADDING) / 7);
 
-const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const DAY_NAMES = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_NAMES = [
+  "SUNDAY",
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
 ];
-const STEP_TITLES = ['Select Doctor', 'Pick a Slot', "Patient's Details"];
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+const STEP_TITLES = ["Select Doctor", "Pick a Slot", "Patient's Details"];
 
 interface Doctor {
   id: string;
@@ -68,17 +96,17 @@ function parseTimeStr(timeStr: string): Date | null {
   let h = parseInt(match[1], 10);
   const m = parseInt(match[2], 10);
   const period = match[3].toUpperCase();
-  if (period === 'PM' && h !== 12) h += 12;
-  if (period === 'AM' && h === 12) h = 0;
+  if (period === "PM" && h !== 12) h += 12;
+  if (period === "AM" && h === 12) h = 0;
   return new Date(2000, 0, 1, h, m, 0, 0);
 }
 
 function formatTimeStr(date: Date): string {
   const h = date.getHours();
   const m = date.getMinutes();
-  const period = h >= 12 ? 'PM' : 'AM';
+  const period = h >= 12 ? "PM" : "AM";
   const displayH = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${displayH}:${m.toString().padStart(2, '0')} ${period}`;
+  return `${displayH}:${m.toString().padStart(2, "0")} ${period}`;
 }
 
 function generateSlots(availableFrom: string, availableTill: string): string[] {
@@ -97,21 +125,36 @@ function generateSlots(availableFrom: string, availableTill: string): string[] {
 function combineDateTime(date: Date, timeStr: string): Date {
   const t = parseTimeStr(timeStr);
   if (!t) return date;
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), t.getHours(), t.getMinutes(), 0, 0);
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    t.getHours(),
+    t.getMinutes(),
+    0,
+    0,
+  );
 }
 
 function getInitials(name: string): string {
   return name
-    .split(' ')
+    .split(" ")
     .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('');
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("");
 }
 
 function InitialsAvatar({ name, size = 40 }: { name: string; size?: number }) {
   return (
-    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}>
-      <Text style={[styles.avatarText, { fontSize: size * 0.35 }]}>{getInitials(name)}</Text>
+    <View
+      style={[
+        styles.avatar,
+        { width: size, height: size, borderRadius: size / 2 },
+      ]}
+    >
+      <Text style={[styles.avatarText, { fontSize: size * 0.35 }]}>
+        {getInitials(name)}
+      </Text>
     </View>
   );
 }
@@ -122,19 +165,37 @@ function StepIndicator({ step }: { step: number }) {
       {STEP_TITLES.map((title, i) => (
         <React.Fragment key={i}>
           <View style={styles.stepItem}>
-            <View style={[styles.stepCircle, i < step && styles.stepCircleDone, i === step && styles.stepCircleActive]}>
+            <View
+              style={[
+                styles.stepCircle,
+                i < step && styles.stepCircleDone,
+                i === step && styles.stepCircleActive,
+              ]}
+            >
               {i < step ? (
                 <Ionicons name="checkmark" size={13} color="#fff" />
               ) : (
-                <Text style={[styles.stepNum, i === step && styles.stepNumActive]}>{i + 1}</Text>
+                <Text
+                  style={[styles.stepNum, i === step && styles.stepNumActive]}
+                >
+                  {i + 1}
+                </Text>
               )}
             </View>
-            <Text style={[styles.stepLabel, i === step && styles.stepLabelActive]} numberOfLines={1}>
+            <Text
+              style={[styles.stepLabel, i === step && styles.stepLabelActive]}
+              numberOfLines={1}
+            >
               {title}
             </Text>
           </View>
           {i < STEP_TITLES.length - 1 && (
-            <View style={[styles.stepConnector, i < step && styles.stepConnectorDone]} />
+            <View
+              style={[
+                styles.stepConnector,
+                i < step && styles.stepConnectorDone,
+              ]}
+            />
           )}
         </React.Fragment>
       ))}
@@ -147,7 +208,7 @@ export function CreateAppointmentScreen({ navigation }: Props) {
   const [step, setStep] = useState(0);
 
   // Step 1
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
 
   // Step 2
@@ -156,9 +217,9 @@ export function CreateAppointmentScreen({ navigation }: Props) {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
 
   // Step 3
-  const [patientName, setPatientName] = useState('');
-  const [additionalNote, setAdditionalNote] = useState('');
-  const [nameError, setNameError] = useState('');
+  const [patientName, setPatientName] = useState("");
+  const [additionalNote, setAdditionalNote] = useState("");
+  const [nameError, setNameError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // Queries
@@ -167,7 +228,8 @@ export function CreateAppointmentScreen({ navigation }: Props) {
     variables: { user_id: user?.id },
     pause: !user?.id,
   });
-  const locationId: string | undefined = locationData?.nurses?.[0]?.location?.id;
+  const locationId: string | undefined =
+    locationData?.nurses?.[0]?.location?.id;
 
   const [{ data: doctorsData, fetching: fetchingDoctors }] = useQuery({
     query: GET_DOCTORS_FOR_APPOINTMENT,
@@ -181,7 +243,8 @@ export function CreateAppointmentScreen({ navigation }: Props) {
     variables: { doctor_id: selectedDoctor?.id },
     pause: !selectedDoctor?.id,
   });
-  const weeklyAvailability: WeeklySlot[] = availabilityData?.doctor_weekly_availability ?? [];
+  const weeklyAvailability: WeeklySlot[] =
+    availabilityData?.doctor_weekly_availability ?? [];
 
   const [, executeCreate] = useMutation(CREATE_APPOINTMENT);
 
@@ -233,10 +296,11 @@ export function CreateAppointmentScreen({ navigation }: Props) {
 
   const handleSubmit = async () => {
     if (!patientName.trim()) {
-      setNameError('Patient name is required');
+      setNameError("Patient name is required");
       return;
     }
-    if (!selectedDoctor || !selectedDate || !selectedSlot || !locationId) return;
+    if (!selectedDoctor || !selectedDate || !selectedSlot || !locationId)
+      return;
 
     setSubmitting(true);
     try {
@@ -256,14 +320,14 @@ export function CreateAppointmentScreen({ navigation }: Props) {
       });
 
       if (error) {
-        Alert.alert('Error', error.message || 'Failed to create appointment');
+        Alert.alert("Error", error.message || "Failed to create appointment");
       } else {
-        Alert.alert('Success', 'Appointment created successfully', [
-          { text: 'OK', onPress: () => navigation.goBack() },
+        Alert.alert("Success", "Appointment created successfully", [
+          { text: "OK", onPress: () => navigation.goBack() },
         ]);
       }
     } catch {
-      Alert.alert('Error', 'An unexpected error occurred');
+      Alert.alert("Error", "An unexpected error occurred");
     } finally {
       setSubmitting(false);
     }
@@ -272,10 +336,17 @@ export function CreateAppointmentScreen({ navigation }: Props) {
   // ── Step 1: Doctor Selection ──────────────────────────────────────────────
   const renderStep1 = () => (
     <View style={{ flex: 1 }}>
-      <Text style={styles.sectionDesc}>Choose a doctor for this appointment</Text>
+      <Text style={styles.sectionDesc}>
+        Choose a doctor for this appointment
+      </Text>
 
       <View style={styles.searchBox}>
-        <Ionicons name="search-outline" size={18} color={TEXT_COLOR_LIGHT} style={{ marginRight: 8 }} />
+        <Ionicons
+          name="search-outline"
+          size={18}
+          color={TEXT_COLOR_LIGHT}
+          style={{ marginRight: 8 }}
+        />
         <TextInput
           style={styles.searchInput}
           placeholder="Search by name..."
@@ -284,7 +355,7 @@ export function CreateAppointmentScreen({ navigation }: Props) {
           onChangeText={setSearchQuery}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
+          <TouchableOpacity onPress={() => setSearchQuery("")}>
             <Ionicons name="close-circle" size={18} color={TEXT_COLOR_LIGHT} />
           </TouchableOpacity>
         )}
@@ -304,15 +375,30 @@ export function CreateAppointmentScreen({ navigation }: Props) {
             const isSelected = selectedDoctor?.id === item.id;
             return (
               <TouchableOpacity
-                style={[styles.doctorItem, isSelected && styles.doctorItemSelected]}
+                style={[
+                  styles.doctorItem,
+                  isSelected && styles.doctorItemSelected,
+                ]}
                 onPress={() => handleDoctorSelect(item)}
                 activeOpacity={0.7}
               >
                 <InitialsAvatar name={item.user.display_name} />
-                <Text style={[styles.doctorName, isSelected && styles.doctorNameSelected]} numberOfLines={1}>
+                <Text
+                  style={[
+                    styles.doctorName,
+                    isSelected && styles.doctorNameSelected,
+                  ]}
+                  numberOfLines={1}
+                >
                   {item.user.display_name}
                 </Text>
-                {isSelected && <Ionicons name="checkmark-circle" size={22} color={PRIMARY_COLOR} />}
+                {isSelected && (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={22}
+                    color={PRIMARY_COLOR}
+                  />
+                )}
               </TouchableOpacity>
             );
           }}
@@ -330,11 +416,16 @@ export function CreateAppointmentScreen({ navigation }: Props) {
 
   // ── Step 2: Date & Time Slot ──────────────────────────────────────────────
   const renderStep2 = () => (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 120 }}
+    >
       {/* Selected Doctor */}
       <View style={styles.selectedDocRow}>
         <InitialsAvatar name={selectedDoctor!.user.display_name} size={34} />
-        <Text style={styles.selectedDocName}>{selectedDoctor!.user.display_name}</Text>
+        <Text style={styles.selectedDocName}>
+          {selectedDoctor!.user.display_name}
+        </Text>
         <TouchableOpacity onPress={() => setStep(0)}>
           <Text style={styles.changeLink}>Change</Text>
         </TouchableOpacity>
@@ -343,11 +434,19 @@ export function CreateAppointmentScreen({ navigation }: Props) {
       {/* Calendar */}
       <View style={styles.calendarCard}>
         <View style={styles.calendarNav}>
-          <TouchableOpacity onPress={() => setCalendarMonth(subMonths(calendarMonth, 1))} style={styles.navBtn}>
+          <TouchableOpacity
+            onPress={() => setCalendarMonth(subMonths(calendarMonth, 1))}
+            style={styles.navBtn}
+          >
             <Ionicons name="chevron-back" size={20} color={TEXT_COLOR} />
           </TouchableOpacity>
-          <Text style={styles.calendarMonthLabel}>{MONTH_NAMES[month]} {year}</Text>
-          <TouchableOpacity onPress={() => setCalendarMonth(addMonths(calendarMonth, 1))} style={styles.navBtn}>
+          <Text style={styles.calendarMonthLabel}>
+            {MONTH_NAMES[month]} {year}
+          </Text>
+          <TouchableOpacity
+            onPress={() => setCalendarMonth(addMonths(calendarMonth, 1))}
+            style={styles.navBtn}
+          >
             <Ionicons name="chevron-forward" size={20} color={TEXT_COLOR} />
           </TouchableOpacity>
         </View>
@@ -364,7 +463,13 @@ export function CreateAppointmentScreen({ navigation }: Props) {
         {/* Date grid */}
         <View style={styles.calendarGrid}>
           {calendarCells.map((day, i) => {
-            if (!day) return <View key={`pad-${i}`} style={{ width: CELL_SIZE, height: CELL_SIZE }} />;
+            if (!day)
+              return (
+                <View
+                  key={`pad-${i}`}
+                  style={{ width: CELL_SIZE, height: CELL_SIZE }}
+                />
+              );
             const isPast = isBefore(startOfDay(day), today);
             const isSelected = !!selectedDate && isSameDay(day, selectedDate);
             const isToday = isSameDay(day, new Date());
@@ -381,12 +486,14 @@ export function CreateAppointmentScreen({ navigation }: Props) {
                 disabled={isPast}
                 activeOpacity={0.7}
               >
-                <Text style={[
-                  styles.dateCellText,
-                  isPast && styles.dateCellTextPast,
-                  isSelected && styles.dateCellTextSelected,
-                  isToday && !isSelected && styles.dateCellTextToday,
-                ]}>
+                <Text
+                  style={[
+                    styles.dateCellText,
+                    isPast && styles.dateCellTextPast,
+                    isSelected && styles.dateCellTextSelected,
+                    isToday && !isSelected && styles.dateCellTextToday,
+                  ]}
+                >
                   {day.getDate()}
                 </Text>
               </TouchableOpacity>
@@ -404,8 +511,14 @@ export function CreateAppointmentScreen({ navigation }: Props) {
 
           {timeSlots.length === 0 ? (
             <View style={styles.noSlotsBox}>
-              <Ionicons name="calendar-outline" size={36} color={BORDER_COLOR} />
-              <Text style={styles.noSlotsTitle}>No availability on this day</Text>
+              <Ionicons
+                name="calendar-outline"
+                size={36}
+                color={BORDER_COLOR}
+              />
+              <Text style={styles.noSlotsTitle}>
+                No availability on this day
+              </Text>
               <Text style={styles.noSlotsDesc}>Select a different date</Text>
             </View>
           ) : (
@@ -419,7 +532,12 @@ export function CreateAppointmentScreen({ navigation }: Props) {
                     onPress={() => setSelectedSlot(slot)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.slotChipText, isActive && styles.slotChipTextActive]}>
+                    <Text
+                      style={[
+                        styles.slotChipText,
+                        isActive && styles.slotChipTextActive,
+                      ]}
+                    >
                       {slot}
                     </Text>
                   </TouchableOpacity>
@@ -434,26 +552,44 @@ export function CreateAppointmentScreen({ navigation }: Props) {
 
   // ── Step 3: Patient Details ───────────────────────────────────────────────
   const renderStep3 = () => (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={{ flex: 1 }}
+    >
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
         {/* Summary card */}
         <View style={styles.summaryCard}>
           <Text style={styles.summaryCardTitle}>Appointment Summary</Text>
           <View style={styles.summaryRow}>
-            <View style={styles.summaryIcon}><Ionicons name="person-outline" size={15} color={PRIMARY_COLOR} /></View>
-            <Text style={styles.summaryValue}>{selectedDoctor?.user.display_name}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryIcon}><Ionicons name="calendar-outline" size={15} color={PRIMARY_COLOR} /></View>
+            <View style={styles.summaryIcon}>
+              <Ionicons name="person-outline" size={15} color={PRIMARY_COLOR} />
+            </View>
             <Text style={styles.summaryValue}>
-              {selectedDate
-                ? `${DAY_LABELS[selectedDate.getDay()]}, ${MONTH_NAMES[selectedDate.getMonth()]} ${selectedDate.getDate()}, ${selectedDate.getFullYear()}`
-                : '—'}
+              {selectedDoctor?.user.display_name}
             </Text>
           </View>
           <View style={styles.summaryRow}>
-            <View style={styles.summaryIcon}><Ionicons name="time-outline" size={15} color={PRIMARY_COLOR} /></View>
-            <Text style={styles.summaryValue}>{selectedSlot ?? '—'}</Text>
+            <View style={styles.summaryIcon}>
+              <Ionicons
+                name="calendar-outline"
+                size={15}
+                color={PRIMARY_COLOR}
+              />
+            </View>
+            <Text style={styles.summaryValue}>
+              {selectedDate
+                ? `${DAY_LABELS[selectedDate.getDay()]}, ${MONTH_NAMES[selectedDate.getMonth()]} ${selectedDate.getDate()}, ${selectedDate.getFullYear()}`
+                : "—"}
+            </Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryIcon}>
+              <Ionicons name="time-outline" size={15} color={PRIMARY_COLOR} />
+            </View>
+            <Text style={styles.summaryValue}>{selectedSlot ?? "—"}</Text>
           </View>
         </View>
 
@@ -463,7 +599,10 @@ export function CreateAppointmentScreen({ navigation }: Props) {
           label="Patient Name *"
           placeholder="Full name"
           value={patientName}
-          onChangeText={(t) => { setPatientName(t); setNameError(''); }}
+          onChangeText={(t) => {
+            setPatientName(t);
+            setNameError("");
+          }}
           error={nameError}
           autoCapitalize="words"
         />
@@ -475,7 +614,7 @@ export function CreateAppointmentScreen({ navigation }: Props) {
           onChangeText={setAdditionalNote}
           multiline
           numberOfLines={4}
-          style={{ minHeight: 96, textAlignVertical: 'top' }}
+          style={{ minHeight: 96, textAlignVertical: "top" }}
         />
       </ScrollView>
     </KeyboardAvoidingView>
@@ -530,31 +669,36 @@ const styles = StyleSheet.create({
 
   // Step indicator
   stepHeader: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     paddingTop: 16,
     paddingBottom: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: BORDER_COLOR,
   },
-  stepRow: { flexDirection: 'row', alignItems: 'center' },
-  stepItem: { alignItems: 'center', width: 64 },
+  stepRow: { flexDirection: "row", alignItems: "center" },
+  stepItem: { alignItems: "center", width: 64 },
   stepCircle: {
     width: 28,
     height: 28,
     borderRadius: 14,
     backgroundColor: BORDER_COLOR,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 4,
   },
   stepCircleActive: { backgroundColor: PRIMARY_COLOR },
   stepCircleDone: { backgroundColor: SECONDARY_COLOR },
-  stepNum: { fontSize: 13, fontWeight: '600', color: TEXT_COLOR_LIGHT },
-  stepNumActive: { color: '#fff' },
-  stepLabel: { fontSize: 10, color: TEXT_COLOR_LIGHT, textAlign: 'center' },
-  stepLabelActive: { color: PRIMARY_COLOR, fontWeight: '600' },
-  stepConnector: { flex: 1, height: 2, backgroundColor: BORDER_COLOR, marginBottom: 18 },
+  stepNum: { fontSize: 13, fontWeight: "600", color: TEXT_COLOR_LIGHT },
+  stepNumActive: { color: "#fff" },
+  stepLabel: { fontSize: 10, color: TEXT_COLOR_LIGHT, textAlign: "center" },
+  stepLabelActive: { color: PRIMARY_COLOR, fontWeight: "600" },
+  stepConnector: {
+    flex: 1,
+    height: 2,
+    backgroundColor: BORDER_COLOR,
+    marginBottom: 18,
+  },
   stepConnectorDone: { backgroundColor: SECONDARY_COLOR },
 
   // Content
@@ -564,9 +708,9 @@ const styles = StyleSheet.create({
 
   // Search
   searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
     borderWidth: 1.5,
     borderColor: BORDER_COLOR,
     borderRadius: 10,
@@ -576,15 +720,20 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 15, color: TEXT_COLOR },
 
-  loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
+  loadingBox: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
   loadingText: { color: TEXT_COLOR_LIGHT, fontSize: 14 },
 
   // Doctor list
   doctorList: { paddingBottom: 16 },
   doctorItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
     borderRadius: 10,
     padding: 12,
     marginBottom: 8,
@@ -592,24 +741,37 @@ const styles = StyleSheet.create({
     borderColor: BORDER_COLOR,
     gap: 12,
   },
-  doctorItemSelected: { borderColor: PRIMARY_COLOR, backgroundColor: '#F0FAF8' },
-  doctorName: { flex: 1, fontSize: 15, fontWeight: '500', color: TEXT_COLOR },
+  doctorItemSelected: {
+    borderColor: PRIMARY_COLOR,
+    backgroundColor: "#F0FAF8",
+  },
+  doctorName: { flex: 1, fontSize: 15, fontWeight: "500", color: TEXT_COLOR },
   doctorNameSelected: { color: PRIMARY_COLOR },
 
   // Empty state
-  emptyBox: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 60, gap: 8 },
-  emptyTitle: { fontSize: 16, fontWeight: '600', color: TEXT_COLOR },
+  emptyBox: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 60,
+    gap: 8,
+  },
+  emptyTitle: { fontSize: 16, fontWeight: "600", color: TEXT_COLOR },
   emptyDesc: { fontSize: 13, color: TEXT_COLOR_LIGHT },
 
   // Avatar
-  avatar: { backgroundColor: PRIMARY_COLOR, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontWeight: '700' },
+  avatar: {
+    backgroundColor: PRIMARY_COLOR,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: { color: "#fff", fontWeight: "700" },
 
   // Selected doctor row (step 2)
   selectedDocRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
     borderRadius: 10,
     padding: 12,
     marginBottom: 12,
@@ -617,56 +779,80 @@ const styles = StyleSheet.create({
     borderColor: BORDER_COLOR,
     gap: 10,
   },
-  selectedDocName: { flex: 1, fontSize: 14, fontWeight: '600', color: TEXT_COLOR },
-  changeLink: { fontSize: 13, color: PRIMARY_COLOR, fontWeight: '600' },
+  selectedDocName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: TEXT_COLOR,
+  },
+  changeLink: { fontSize: 13, color: PRIMARY_COLOR, fontWeight: "600" },
 
   // Calendar
   calendarCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
     borderColor: BORDER_COLOR,
     marginBottom: 16,
   },
-  calendarNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  calendarNav: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
   navBtn: { padding: 4 },
-  calendarMonthLabel: { fontSize: 16, fontWeight: '700', color: TEXT_COLOR },
-  dayHeaderRow: { flexDirection: 'row', marginBottom: 4 },
-  dayCell: { alignItems: 'center', justifyContent: 'center', height: 28 },
-  dayHeaderText: { fontSize: 11, fontWeight: '600', color: TEXT_COLOR_LIGHT },
-  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  dateCell: { alignItems: 'center', justifyContent: 'center', borderRadius: CELL_SIZE / 2 },
+  calendarMonthLabel: { fontSize: 16, fontWeight: "700", color: TEXT_COLOR },
+  dayHeaderRow: { flexDirection: "row", marginBottom: 4 },
+  dayCell: { alignItems: "center", justifyContent: "center", height: 28 },
+  dayHeaderText: { fontSize: 11, fontWeight: "600", color: TEXT_COLOR_LIGHT },
+  calendarGrid: { flexDirection: "row", flexWrap: "wrap" },
+  dateCell: {
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: CELL_SIZE / 2,
+  },
   dateCellSelected: { backgroundColor: PRIMARY_COLOR },
-  dateCellToday: { backgroundColor: '#E0F5F1' },
-  dateCellText: { fontSize: 13, fontWeight: '500', color: TEXT_COLOR },
+  dateCellToday: { backgroundColor: "#E0F5F1" },
+  dateCellText: { fontSize: 13, fontWeight: "500", color: TEXT_COLOR },
   dateCellTextPast: { color: BORDER_COLOR },
-  dateCellTextSelected: { color: '#fff', fontWeight: '700' },
-  dateCellTextToday: { color: PRIMARY_COLOR, fontWeight: '700' },
+  dateCellTextSelected: { color: "#fff", fontWeight: "700" },
+  dateCellTextToday: { color: PRIMARY_COLOR, fontWeight: "700" },
 
   // Time slots
-  slotsSectionLabel: { fontSize: 14, fontWeight: '600', color: TEXT_COLOR, marginBottom: 10 },
-  noSlotsBox: { alignItems: 'center', paddingVertical: 32, gap: 6 },
-  noSlotsTitle: { fontSize: 15, fontWeight: '600', color: TEXT_COLOR },
+  slotsSectionLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: TEXT_COLOR,
+    marginBottom: 10,
+  },
+  noSlotsBox: { alignItems: "center", paddingVertical: 32, gap: 6 },
+  noSlotsTitle: { fontSize: 15, fontWeight: "600", color: TEXT_COLOR },
   noSlotsDesc: { fontSize: 13, color: TEXT_COLOR_LIGHT },
-  slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+  slotsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 8,
+  },
   slotChip: {
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1.5,
     borderColor: BORDER_COLOR,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     minWidth: 90,
-    alignItems: 'center',
+    alignItems: "center",
   },
-  slotChipActive: { borderColor: PRIMARY_COLOR, backgroundColor: '#F0FAF8' },
-  slotChipText: { fontSize: 13, fontWeight: '500', color: TEXT_COLOR },
-  slotChipTextActive: { color: PRIMARY_COLOR, fontWeight: '700' },
+  slotChipActive: { borderColor: PRIMARY_COLOR, backgroundColor: "#F0FAF8" },
+  slotChipText: { fontSize: 13, fontWeight: "500", color: TEXT_COLOR },
+  slotChipTextActive: { color: PRIMARY_COLOR, fontWeight: "700" },
 
   // Summary card
   summaryCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
@@ -674,16 +860,30 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     gap: 10,
   },
-  summaryCardTitle: { fontSize: 13, fontWeight: '700', color: TEXT_COLOR_LIGHT, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  summaryIcon: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F0FAF8', borderRadius: 6 },
-  summaryValue: { fontSize: 14, color: TEXT_COLOR, fontWeight: '500', flex: 1 },
+  summaryCardTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: TEXT_COLOR_LIGHT,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  summaryRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  summaryIcon: {
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F0FAF8",
+    borderRadius: 6,
+  },
+  summaryValue: { fontSize: 14, color: TEXT_COLOR, fontWeight: "500", flex: 1 },
 
   // Footer
   footer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: BORDER_COLOR,
     gap: 8,

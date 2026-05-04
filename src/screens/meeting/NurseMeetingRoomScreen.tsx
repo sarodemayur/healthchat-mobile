@@ -16,7 +16,7 @@ import {
   TwilioVideoLocalView,
   TwilioVideoParticipantView,
 } from "react-native-twilio-video-webrtc";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../navigation/types";
@@ -34,11 +34,7 @@ const NURSE_ACTIONS = ["Appointment Info", "Vitals & Pictures", "Docs"];
 export function NurseMeetingRoomScreen({ route, navigation }: Props) {
   const { appointmentId, token, roomName } = route.params;
   const insets = useSafeAreaInsets();
-  const [showDevicePanel, setShowDevicePanel] = useState(false);
   const [showActionsPanel, setShowActionsPanel] = useState(false);
-  const [stethoscopeOn, setStethoscopeOn] = useState(false);
-  const [handheldOn, setHandheldOn] = useState(false);
-  const [otoscopeOn, setOtoscopeOn] = useState(false);
 
   const meeting = useMeetingRoom({
     appointmentId,
@@ -81,30 +77,6 @@ export function NurseMeetingRoomScreen({ route, navigation }: Props) {
     handleParticipantRemovedVideoTrack,
     handleDataTrackMessageReceived,
   } = meeting;
-
-  const deviceItems = [
-    {
-      label: "Stethoscope",
-      value: stethoscopeOn,
-      set: setStethoscopeOn,
-      icon: "stethoscope",
-      dataType: "stethoscope",
-    },
-    {
-      label: "Handheld",
-      value: handheldOn,
-      set: setHandheldOn,
-      icon: "camera-outline",
-      dataType: "handHeldCamera",
-    },
-    {
-      label: "Otoscope",
-      value: otoscopeOn,
-      set: setOtoscopeOn,
-      icon: "ear-outline",
-      dataType: "otoscopeCamera",
-    },
-  ];
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -212,21 +184,8 @@ export function NurseMeetingRoomScreen({ route, navigation }: Props) {
         </View>
       </View>
 
-      {/* Top bar — Devices | Timer | Recording toggle */}
+      {/* Top bar — Timer | Recording toggle */}
       <View style={[styles.topBar, { top: insets.top + 8 }]}>
-        <TouchableOpacity
-          style={styles.deviceBtn}
-          onPress={() => setShowDevicePanel((v) => !v)}
-        >
-          <MaterialCommunityIcons name="stethoscope" size={16} color="#333" />
-          <Text style={styles.deviceBtnText}>Devices</Text>
-          <Ionicons
-            name={showDevicePanel ? "chevron-up" : "chevron-down"}
-            size={14}
-            color="#333"
-          />
-        </TouchableOpacity>
-
         {status === "connected" && (
           <Text style={styles.callTimer}>{formatDuration(callDuration)}</Text>
         )}
@@ -249,34 +208,6 @@ export function NurseMeetingRoomScreen({ route, navigation }: Props) {
           </Text>
         </View>
       </View>
-
-      {/* Device dropdown panel */}
-      {showDevicePanel && (
-        <View style={[styles.devicePanel, { top: insets.top + 52 }]}>
-          {deviceItems.map(({ label, value, set, icon, dataType }) => (
-            <TouchableOpacity
-              key={label}
-              style={styles.deviceRow}
-              onPress={() => {
-                const next = !value;
-                set(next);
-                sendDataMessage({ type: dataType, status: next });
-              }}
-            >
-              <Ionicons
-                name={icon as any}
-                size={16}
-                color="#555"
-                style={{ width: 20 }}
-              />
-              <Text style={styles.deviceLabel}>{label}</Text>
-              <Text style={[styles.deviceState, value && styles.deviceStateOn]}>
-                {value ? "On" : "Off"}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
 
       {/* Bottom controls */}
       <View style={[styles.controls, { paddingBottom: insets.bottom + 12 }]}>
@@ -470,20 +401,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 12,
   },
-  deviceBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  deviceBtnText: { fontSize: 13, fontWeight: "600", color: "#333" },
   callTimer: {
     color: "#fff",
     fontSize: 13,
@@ -492,29 +409,6 @@ const styles = StyleSheet.create({
   },
   recordingWrap: { flexDirection: "row", alignItems: "center", gap: 4 },
   recordingText: { color: "#fff", fontSize: 13, fontWeight: "600" },
-  devicePanel: {
-    position: "absolute",
-    left: 12,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    paddingVertical: 6,
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
-    zIndex: 10,
-    minWidth: 180,
-  },
-  deviceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    gap: 8,
-  },
-  deviceLabel: { flex: 1, fontSize: 14, color: "#333" },
-  deviceState: { fontSize: 13, color: "#999", fontWeight: "600" },
-  deviceStateOn: { color: TEAL },
   controls: {
     flexDirection: "row",
     alignItems: "center",
