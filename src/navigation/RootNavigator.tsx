@@ -36,6 +36,6 @@ function AppNavigator() {
 export function RootNavigator() {
   const { loading } = useAuth();
 
-  if (loading) return <LoadingScreen message="Starting HealthChat…" />;
+  if (loading) return <LoadingScreen message="Starting Gal3n…" />;
   return <AppNavigator />;
 }

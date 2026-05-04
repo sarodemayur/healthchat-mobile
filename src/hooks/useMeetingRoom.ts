@@ -43,6 +43,7 @@ export function useMeetingRoom({
     new Map(),
   );
   const [isMuted, setIsMuted] = useState(false);
+  const [isRemoteMuted, setIsRemoteMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
@@ -323,6 +324,11 @@ export function useMeetingRoom({
           case "recording-declined":
             setIsRecording(false);
             break;
+          case "is_audio_on": {
+            const p = msg.payload as { role: string; status: boolean };
+            setIsRemoteMuted(!p.status);
+            break;
+          }
           default:
             break;
         }
@@ -398,6 +404,7 @@ export function useMeetingRoom({
     // state
     status,
     isMuted,
+    isRemoteMuted,
     isCameraOff,
     isRecording,
     setIsRecording,

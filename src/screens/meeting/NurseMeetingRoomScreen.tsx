@@ -51,6 +51,7 @@ export function NurseMeetingRoomScreen({ route, navigation }: Props) {
     twilioCallbackRef,
     status,
     isMuted,
+    isRemoteMuted,
     isCameraOff,
     isRecording,
     setIsRecording,
@@ -128,6 +129,14 @@ export function NurseMeetingRoomScreen({ route, navigation }: Props) {
             )}
           />
         )}
+
+        <View style={styles.remoteMicOff}>
+          <Ionicons
+            name={isRemoteMuted ? "mic-off" : "mic"}
+            size={14}
+            color="#fff"
+          />
+        </View>
 
         {status === "disconnected" && (
           <View style={styles.statusPill}>
@@ -435,6 +444,14 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 8,
     padding: 2,
+  },
+  remoteMicOff: {
+    position: "absolute",
+    bottom: 16,
+    left: 16,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 8,
+    padding: 4,
   },
   pipLabel: {
     position: "absolute",

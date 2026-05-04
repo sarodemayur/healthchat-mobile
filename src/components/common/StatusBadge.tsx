@@ -4,9 +4,11 @@ import { AppointmentState } from '../../types';
 
 const STATE_CONFIG: Record<AppointmentState, { bg: string; text: string; label: string }> = {
   PENDING: { bg: '#FFF3E0', text: '#E65100', label: 'Pending' },
-  IN_PROGRESS: { bg: '#E8F5E9', text: '#2E7D32', label: 'In Progress' },
+  STARTED: { bg: '#E8F5E9', text: '#2E7D32', label: 'In Progress' },
   COMPLETED: { bg: '#E3F2FD', text: '#1565C0', label: 'Completed' },
   CANCELLED: { bg: '#FAFAFA', text: '#757575', label: 'Cancelled' },
+  DELETED: { bg: '#FBE9E7', text: '#D32F2F', label: 'Deleted' },
+  UNATTENDED: { bg: '#FCE4EC', text: '#C2185B', label: 'Unattended' },
 };
 
 export function StatusBadge({ state }: { state: AppointmentState }) {
