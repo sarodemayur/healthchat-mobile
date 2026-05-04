@@ -49,10 +49,12 @@ export interface Appointment {
   location?: Location;
   patient_vitals?: PatientVitals;
   prescriptions?: Prescription[];
+  family_mem_name: string;
   doctor?: { user: { display_name: string; profile: Profile } };
   nurse?: { user: { display_name: string; profile: Profile } };
   is_doctor_in_call?: boolean;
   is_nurse_in_call?: boolean;
+  waiting_room?: { id: string; status?: string };
 }
 
 export interface PatientVitals {

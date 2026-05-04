@@ -209,3 +209,12 @@ export const GET_CALL_TOKEN = gql`
     }
   }
 `;
+
+export const LEAVE_CALL = gql`
+  mutation LeaveCall($object: LeaveCallInput!) {
+    leaveCall(object: $object) {
+      appointment_status                                                                                                             
+      ok    
+    }
+  }
+`;

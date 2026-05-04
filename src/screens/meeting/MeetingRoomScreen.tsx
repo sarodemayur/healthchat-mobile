@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
+  Animated,
   Modal,
   PermissionsAndroid,
   Platform,
@@ -17,11 +19,15 @@ import {
   TwilioVideoLocalView,
   TwilioVideoParticipantView,
   TrackEventCbArgs,
+  DataTrackEventCbArgs,
 } from "react-native-twilio-video-webrtc";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useMutation, useQuery } from "urql";
 import { useAuth } from "../../context/AuthContext";
+import { GET_APPOINTMENT_BY_ID, LEAVE_CALL } from "../../graphql/appointments";
+import type { Appointment } from "../../types";
 import type { RootStackParamList } from "../../navigation/types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Meeting">;
@@ -78,11 +84,40 @@ export function MeetingRoomScreen({ route, navigation }: Props) {
   const [otoscopeOn, setOtoscopeOn] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [focusedTrackSid, setFocusedTrackSid] = useState<string | null>(null);
+  const [participantIdentities, setParticipantIdentities] = useState<Map<string, string>>(new Map());
+  const [participantBanner, setParticipantBanner] = useState<string | null>(
+    null,
+  );
+  const bannerAnim = useRef(new Animated.Value(0)).current;
+  const bannerAnimRef = useRef<Animated.CompositeAnimation | null>(null);
 
-  const remoteInitials = "NG";
-  const localInitials = user
-    ? `${user.profile?.first_name?.[0] ?? ""}${user.profile?.last_name?.[0] ?? ""}`.toUpperCase()
-    : "ME";
+  const [{ data: appointmentData }] = useQuery<{
+    appointments_by_pk: Appointment;
+  }>({
+    query: GET_APPOINTMENT_BY_ID,
+    variables: { appointment_id: appointmentId },
+  });
+  const appointment = appointmentData?.appointments_by_pk;
+
+  const [, leaveCall] = useMutation(LEAVE_CALL);
+
+  const getInitials = (name: string | undefined | null, fallback: string) =>
+    name
+      ? name
+          .split(" ")
+          .slice(0, 2)
+          .map((w) => w[0])
+          .join("")
+          .toUpperCase()
+      : fallback;
+
+  const isCurrentUserDoctor = user?.id === appointment?.doctor_id;
+  const remoteName = isCurrentUserDoctor
+    ? (appointment?.nurse?.user?.display_name ?? appointment?.nurse_name)
+    : (appointment?.doctor?.user?.display_name ?? appointment?.doctor_name);
+  const remoteInitials = getInitials(remoteName, "?");
+  const localInitials = getInitials(user?.display_name, "ME");
 
   useEffect(() => {
     const requestPermissionsAndConnect = async () => {
@@ -113,9 +148,16 @@ export function MeetingRoomScreen({ route, navigation }: Props) {
     requestPermissionsAndConnect();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (bannerAnimRef.current) bannerAnimRef.current.stop();
       twilioRef.current?.disconnect();
     };
   }, [token, roomName]);
+
+  useEffect(() => {
+    if (focusedTrackSid && !videoTracks.has(focusedTrackSid)) {
+      setFocusedTrackSid(null);
+    }
+  }, [videoTracks, focusedTrackSid]);
 
   const startTimer = useCallback(() => {
     timerRef.current = setInterval(() => setCallDuration((d) => d + 1), 1000);
@@ -128,6 +170,79 @@ export function MeetingRoomScreen({ route, navigation }: Props) {
     const s = (seconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
+
+  const resolveParticipantName = useCallback(
+    (identity: string): string => {
+      if (!appointment) return "A participant";
+      if (identity === appointment.doctor_id)
+        return (
+          appointment.doctor?.user?.display_name ??
+          appointment.doctor_name ??
+          "Doctor"
+        );
+      if (identity === appointment.nurse_id)
+        return (
+          appointment.nurse?.user?.display_name ??
+          appointment.nurse_name ??
+          "Nurse"
+        );
+      if (identity === "family_member")
+        return appointment.family_mem_name ?? appointment.patient_name;
+      return "A participant";
+    },
+    [appointment],
+  );
+
+  const showParticipantBanner = useCallback(
+    (message: string) => {
+      if (bannerAnimRef.current) bannerAnimRef.current.stop();
+      bannerAnim.setValue(0);
+      setParticipantBanner(message);
+      bannerAnimRef.current = Animated.sequence([
+        Animated.timing(bannerAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.delay(2500),
+        Animated.timing(bannerAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]);
+      bannerAnimRef.current.start(({ finished }: { finished: boolean }) => {
+        if (finished) setParticipantBanner(null);
+      });
+    },
+    [bannerAnim],
+  );
+
+  const handleParticipantConnected = useCallback(
+    ({ participant }: { participant: { sid: string; identity: string } }) => {
+      setParticipantIdentities((prev) => {
+        const next = new Map(prev);
+        next.set(participant.sid, participant.identity);
+        return next;
+      });
+      const name = resolveParticipantName(participant.identity);
+      showParticipantBanner(`${name} joined the meeting`);
+    },
+    [resolveParticipantName, showParticipantBanner],
+  );
+
+  const handleParticipantDisconnected = useCallback(
+    ({ participant }: { participant: { sid: string; identity: string } }) => {
+      setParticipantIdentities((prev) => {
+        const next = new Map(prev);
+        next.delete(participant.sid);
+        return next;
+      });
+      const name = resolveParticipantName(participant.identity);
+      showParticipantBanner(`${name} left the meeting`);
+    },
+    [resolveParticipantName, showParticipantBanner],
+  );
 
   const handleRoomDidConnect = useCallback(() => {
     setStatus("connected");
@@ -179,19 +294,114 @@ export function MeetingRoomScreen({ route, navigation }: Props) {
     [],
   );
 
+  const sendDataMessage = useCallback((payload: object) => {
+    twilioRef.current?.sendString(JSON.stringify(payload));
+  }, []);
+
   const toggleMute = useCallback(() => {
-    twilioRef.current?.setLocalAudioEnabled(isMuted);
-    setIsMuted((m) => !m);
-  }, [isMuted]);
+    const newEnabled = isMuted;
+    twilioRef.current
+      ?.setLocalAudioEnabled(newEnabled)
+      .then((enabled: boolean) => {
+        setIsMuted(!enabled);
+        sendDataMessage({
+          type: "is_audio_on",
+          payload: { role: user?.role, status: enabled },
+        });
+      });
+  }, [isMuted, sendDataMessage, user?.role]);
 
   const toggleCamera = useCallback(() => {
-    twilioRef.current?.setLocalVideoEnabled(isCameraOff);
-    setIsCameraOff((c) => !c);
-  }, [isCameraOff]);
+    const newEnabled = isCameraOff;
+    twilioRef.current
+      ?.setLocalVideoEnabled(newEnabled)
+      .then((enabled: boolean) => {
+        setIsCameraOff(!enabled);
+        sendDataMessage({ type: "video_off", status: !enabled });
+      });
+  }, [isCameraOff, sendDataMessage]);
 
   const flipCamera = useCallback(() => {
     twilioRef.current?.flipCamera();
   }, []);
+
+  const swapToMain = useCallback((trackSid: string) => {
+    setFocusedTrackSid(trackSid);
+  }, []);
+
+  const handleDataTrackMessageReceived = useCallback(
+    ({ message }: DataTrackEventCbArgs) => {
+      try {
+        const msg = JSON.parse(message) as {
+          type: string;
+          payload?: unknown;
+          status?: boolean;
+          identity?: string;
+        };
+        switch (msg.type) {
+          case "mute":
+            if (!msg.identity || msg.identity === user?.id) {
+              twilioRef.current?.setLocalAudioEnabled(false).then(() => {
+                setIsMuted(true);
+                sendDataMessage({
+                  type: "is_audio_on",
+                  payload: { role: user?.role, status: false },
+                });
+              });
+            }
+            break;
+          case "unmute":
+            if (!msg.identity || msg.identity === user?.id) {
+              twilioRef.current?.setLocalAudioEnabled(true).then(() => {
+                setIsMuted(false);
+                sendDataMessage({
+                  type: "is_audio_on",
+                  payload: { role: user?.role, status: true },
+                });
+              });
+            }
+            break;
+          case "remove":
+            if (!msg.identity || msg.identity === user?.id) {
+              twilioRef.current?.disconnect();
+            }
+            break;
+          case "request-recording":
+            Alert.alert(
+              "Recording Request",
+              "The other participant is requesting to record this call. Do you approve?",
+              [
+                {
+                  text: "Decline",
+                  style: "destructive",
+                  onPress: () =>
+                    sendDataMessage({ type: "recording-declined" }),
+                },
+                {
+                  text: "Approve",
+                  onPress: () => {
+                    setIsRecording(true);
+                    sendDataMessage({ type: "recording-approved" });
+                  },
+                },
+              ],
+            );
+            break;
+          case "recording-approved":
+            setIsRecording(true);
+            break;
+          case "recording-declined":
+            setIsRecording(false);
+            break;
+          default:
+            break;
+        }
+      } catch {
+        // ignore malformed messages
+      }
+    },
+    [user?.id, user?.role, sendDataMessage],
+  );
 
   const hangUp = useCallback(() => {
     Alert.alert("End Call", "Are you sure you want to leave this call?", [
@@ -199,12 +409,28 @@ export function MeetingRoomScreen({ route, navigation }: Props) {
       {
         text: "Leave",
         style: "destructive",
-        onPress: () => twilioRef.current?.disconnect(),
+        onPress: () => {
+          leaveCall({
+            object: {
+              appointment_id: appointmentId,
+              room_id: appointment?.room_sid ?? "",
+              waiting_room_id: appointment?.waiting_room?.id ?? "",
+            },
+          });
+          twilioRef.current?.disconnect();
+        },
       },
     ]);
-  }, []);
+  }, [appointment, appointmentId, leaveCall]);
 
-  const remoteParticipants = Array.from(videoTracks.values());
+  const allTracks = Array.from(videoTracks.values());
+  const focusedTrack =
+    (focusedTrackSid
+      ? allTracks.find((t) => t.videoTrackSid === focusedTrackSid)
+      : undefined) ?? allTracks[0];
+  const thumbnailTracks = allTracks.filter(
+    (t) => t.videoTrackSid !== focusedTrack?.videoTrackSid,
+  );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -212,30 +438,77 @@ export function MeetingRoomScreen({ route, navigation }: Props) {
 
       {/* ── Remote video area ── */}
       <View style={styles.remoteArea}>
-        {remoteParticipants.length > 0 ? (
-          remoteParticipants.map((track) => (
+        {focusedTrack ? (
+          <TwilioVideoParticipantView
+            key={focusedTrack.videoTrackSid}
+            style={StyleSheet.absoluteFill}
+            trackIdentifier={{
+              participantSid: focusedTrack.participantSid,
+              videoTrackSid: focusedTrack.videoTrackSid,
+            }}
+          />
+        ) : (
+          <ParticipantAvatar initials={remoteInitials} />
+        )}
+
+        {/* Status pill — shown only when disconnected (connecting uses full overlay) */}
+        {status === "disconnected" && (
+          <View style={styles.statusPill}>
+            <View style={styles.statusDot} />
+            <Text style={styles.statusText}>Disconnected</Text>
+          </View>
+        )}
+
+        {/* Participant join/leave banner */}
+        {participantBanner && (
+          <Animated.View
+            style={[
+              styles.participantBanner,
+              {
+                opacity: bannerAnim,
+                transform: [
+                  {
+                    translateY: bannerAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-16, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <Ionicons name="person-add-outline" size={16} color="#fff" />
+            <Text style={styles.participantBannerText}>
+              {participantBanner}
+            </Text>
+          </Animated.View>
+        )}
+
+        {/* Thumbnail tiles for 3rd+ participants */}
+        {thumbnailTracks.map((track, index) => (
+          <TouchableOpacity
+            key={track.videoTrackSid}
+            style={[styles.pip, { right: 16 + (90 + 8) * (index + 1) }]}
+            onPress={() => swapToMain(track.videoTrackSid)}
+            activeOpacity={0.85}
+          >
             <TwilioVideoParticipantView
-              key={track.videoTrackSid}
               style={StyleSheet.absoluteFill}
               trackIdentifier={{
                 participantSid: track.participantSid,
                 videoTrackSid: track.videoTrackSid,
               }}
             />
-          ))
-        ) : (
-          <ParticipantAvatar initials={remoteInitials} />
-        )}
-
-        {/* Status pill */}
-        {status !== "connected" && (
-          <View style={styles.statusPill}>
-            <View style={styles.statusDot} />
-            <Text style={styles.statusText}>
-              {status === "connecting" ? "Connecting to room…" : "Disconnected"}
+            <View style={styles.pipExpandIcon}>
+              <Ionicons name="expand-outline" size={12} color="#fff" />
+            </View>
+            <Text style={styles.pipLabel} numberOfLines={1}>
+              {resolveParticipantName(
+                participantIdentities.get(track.participantSid) ?? "",
+              )}
             </Text>
-          </View>
-        )}
+          </TouchableOpacity>
+        ))}
 
         {/* Local PiP */}
         <View style={styles.pip}>
@@ -271,11 +544,19 @@ export function MeetingRoomScreen({ route, navigation }: Props) {
           />
         </TouchableOpacity>
 
+        {/* Call timer */}
+        {status === "connected" && (
+          <Text style={styles.callTimer}>{formatDuration(callDuration)}</Text>
+        )}
+
         {/* Recording toggle */}
         <View style={styles.recordingWrap}>
           <Switch
             value={isRecording}
-            onValueChange={setIsRecording}
+            onValueChange={(val) => {
+              setIsRecording(val);
+              sendDataMessage({ type: "recording", payload: val });
+            }}
             trackColor={{ false: "#ccc", true: TEAL }}
             thumbColor="#fff"
             style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
@@ -295,24 +576,31 @@ export function MeetingRoomScreen({ route, navigation }: Props) {
               value: stethoscopeOn,
               set: setStethoscopeOn,
               icon: "stethoscope",
+              dataType: "stethoscope",
             },
             {
               label: "Handheld",
               value: handheldOn,
               set: setHandheldOn,
               icon: "camera-outline",
+              dataType: "handHeldCamera",
             },
             {
               label: "Otoscope",
               value: otoscopeOn,
               set: setOtoscopeOn,
               icon: "ear-outline",
+              dataType: "otoscopeCamera",
             },
-          ].map(({ label, value, set, icon }) => (
+          ].map(({ label, value, set, icon, dataType }) => (
             <TouchableOpacity
               key={label}
               style={styles.deviceRow}
-              onPress={() => set((v: boolean) => !v)}
+              onPress={() => {
+                const next = !value;
+                set(next);
+                sendDataMessage({ type: dataType, status: next });
+              }}
             >
               <Ionicons
                 name={icon as any}
@@ -332,23 +620,27 @@ export function MeetingRoomScreen({ route, navigation }: Props) {
       {/* ── Bottom controls ── */}
       <View style={[styles.controls, { paddingBottom: insets.bottom + 12 }]}>
         <ControlBtn
-          icon="mic-outline"
-          label="Mic"
+          icon={isMuted ? "mic-off-outline" : "mic-outline"}
+          label={isMuted ? "Unmute" : "Mic"}
           active={!isMuted}
           onPress={toggleMute}
         />
         <ControlBtn
-          icon="videocam-outline"
-          label="Webcam"
+          icon={isCameraOff ? "videocam-off-outline" : "videocam-outline"}
+          label={isCameraOff ? "Start Video" : "Webcam"}
           active={!isCameraOff}
           onPress={toggleCamera}
           teal
         />
         <ControlBtn
           icon="swap-horizontal-outline"
-          label="Swap Video"
+          label={thumbnailTracks.length > 0 ? "Swap Video" : "Flip Cam"}
           active
-          onPress={flipCamera}
+          onPress={
+            thumbnailTracks.length > 0
+              ? () => swapToMain(thumbnailTracks[0].videoTrackSid)
+              : flipCamera
+          }
         />
         <ControlBtn
           icon="information-circle-outline"
@@ -404,9 +696,20 @@ export function MeetingRoomScreen({ route, navigation }: Props) {
         onRoomDidConnect={handleRoomDidConnect}
         onRoomDidDisconnect={handleRoomDidDisconnect}
         onRoomDidFailToConnect={handleRoomDidFailToConnect}
+        onRoomParticipantDidConnect={handleParticipantConnected}
+        onRoomParticipantDidDisconnect={handleParticipantDisconnected}
         onParticipantAddedVideoTrack={handleParticipantAddedVideoTrack}
         onParticipantRemovedVideoTrack={handleParticipantRemovedVideoTrack}
+        onDataTrackMessageReceived={handleDataTrackMessageReceived}
       />
+
+      {/* Connecting overlay */}
+      {status === "connecting" && (
+        <View style={styles.connectingOverlay}>
+          <ActivityIndicator size="large" color="#fff" />
+          <Text style={styles.connectingText}>Connecting to meeting…</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -468,6 +771,22 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontSize: 30, fontWeight: "700", color: "#fff" },
 
+  // Participant join/leave banner
+  participantBanner: {
+    position: "absolute",
+    top: 16,
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(0,0,0,0.72)",
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    zIndex: 20,
+  },
+  participantBannerText: { color: "#fff", fontSize: 13, fontWeight: "600" },
+
   // Status pill
   statusPill: {
     position: "absolute",
@@ -504,6 +823,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#2a7a6a",
   },
   pipAvatarText: { color: "#fff", fontWeight: "700", fontSize: 18 },
+  pipExpandIcon: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 6,
+    padding: 3,
+  },
   pipMic: {
     position: "absolute",
     bottom: 18,
@@ -545,6 +872,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   deviceBtnText: { fontSize: 13, fontWeight: "600", color: "#333" },
+  callTimer: { color: "#fff", fontSize: 13, fontWeight: "600", letterSpacing: 0.5 },
   recordingWrap: { flexDirection: "row", alignItems: "center", gap: 4 },
   recordingText: { color: "#fff", fontSize: 13, fontWeight: "600" },
 
@@ -612,6 +940,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     position: "absolute",
     bottom: -18,
+  },
+
+  // Connecting overlay
+  connectingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.72)",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 16,
+    zIndex: 100,
+  },
+  connectingText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 
   // Actions panel

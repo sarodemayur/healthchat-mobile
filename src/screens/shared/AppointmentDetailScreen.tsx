@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -74,7 +74,7 @@ const vitalsStyles = StyleSheet.create({
 export function AppointmentDetailScreen({ route, navigation }: any) {
   const { appointmentId } = route.params as { appointmentId: string };
   const { user } = useAuth();
-
+  const [isJoining, setIsJoining] = useState(false); 
   const [{ data, fetching }] = useQuery({
     query: GET_APPOINTMENT_BY_ID,
     variables: { appointment_id: appointmentId },
@@ -99,7 +99,7 @@ export function AppointmentDetailScreen({ route, navigation }: any) {
   const vitals: PatientVitals | undefined = appointment.patient_vitals;
 
   const canJoin =
-    appointment.state === "PENDING" || appointment.state === "IN_PROGRESS";
+    appointment.state === "PENDING" || appointment.state === "STARTED";
 
   const canCancel = appointment.state === "PENDING" && user?.role === "nurse";
 
@@ -255,10 +255,13 @@ export function AppointmentDetailScreen({ route, navigation }: any) {
         {canJoin ? (
           <Button
             title="Attend Appointment"
+            loading={isJoining}
             onPress={async () => {
+              setIsJoining(true);
               const result = await getCallToken({
                 object: { appointment_id: appointmentId },
               });
+              setIsJoining(false);
               if (result.error || !result.data?.getCallToken?.twilio_token) {
                 Alert.alert(
                   "Error",
