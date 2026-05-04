@@ -135,12 +135,11 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 14, fontWeight: "500", color: TEXT_COLOR_LIGHT },
   tabTextActive: { color: PRIMARY_COLOR, fontWeight: "700" },
   list: { paddingVertical: 8 },
-  emptyContainer: { flex: 1 },
+  emptyContainer: { flexGrow: 1 },
   empty: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: 80,
   },
   emptyIcon: { fontSize: 48, marginBottom: 16 },
   emptyTitle: {

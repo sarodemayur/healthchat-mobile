@@ -81,8 +81,7 @@ export function AppointmentCard({
         ) : null}
       </View>
 
-      {appointment.state === "PENDING" ||
-      appointment.state === "IN_PROGRESS" ? (
+      {appointment.state === "PENDING" || appointment.state === "STARTED" ? (
         <View style={styles.footer}>
           <Ionicons name="videocam-outline" size={16} color={PRIMARY_COLOR} />
           <Text style={styles.joinText}>Attend Appointment</Text>
