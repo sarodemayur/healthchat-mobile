@@ -51,6 +51,7 @@ export function FamilyMemberMeetingRoomScreen({ route, navigation }: Props) {
     bannerAnim,
     remoteInitials,
     localInitials,
+    allTracks,
     focusedTrack,
     thumbnailTracks,
     participantIdentities,
@@ -76,18 +77,53 @@ export function FamilyMemberMeetingRoomScreen({ route, navigation }: Props) {
 
       {/* Remote video area */}
       <View style={styles.remoteArea}>
-        {focusedTrack ? (
-          <TwilioVideoParticipantView
-            key={focusedTrack.videoTrackSid}
-            style={StyleSheet.absoluteFill}
-            trackIdentifier={{
-              participantSid: focusedTrack.participantSid,
-              videoTrackSid: focusedTrack.videoTrackSid,
-            }}
-          />
-        ) : (
+        {allTracks.length === 0 && (
           <ParticipantAvatar initials={remoteInitials} />
         )}
+
+        {focusedTrack &&
+          [focusedTrack, ...thumbnailTracks].map((track) => {
+            const isFocused =
+              track.videoTrackSid === focusedTrack.videoTrackSid;
+            const thumbIdx = thumbnailTracks.findIndex(
+              (t) => t.videoTrackSid === track.videoTrackSid,
+            );
+            return (
+              <TouchableOpacity
+                key={track.videoTrackSid}
+                style={
+                  isFocused
+                    ? StyleSheet.absoluteFill
+                    : [styles.pip, { right: 16 + (90 + 8) * (thumbIdx + 1) }]
+                }
+                onPress={
+                  !isFocused ? () => swapToMain(track.videoTrackSid) : undefined
+                }
+                disabled={isFocused}
+                activeOpacity={isFocused ? 1 : 0.85}
+              >
+                <TwilioVideoParticipantView
+                  style={StyleSheet.absoluteFill}
+                  trackIdentifier={{
+                    participantSid: track.participantSid,
+                    videoTrackSid: track.videoTrackSid,
+                  }}
+                />
+                {!isFocused && (
+                  <>
+                    <View style={styles.pipExpandIcon}>
+                      <Ionicons name="expand-outline" size={12} color="#fff" />
+                    </View>
+                    <Text style={styles.pipLabel} numberOfLines={1}>
+                      {resolveParticipantName(
+                        participantIdentities.get(track.participantSid) ?? "",
+                      )}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            );
+          })}
 
         <View style={styles.remoteMicOff}>
           <Ionicons
@@ -127,31 +163,6 @@ export function FamilyMemberMeetingRoomScreen({ route, navigation }: Props) {
             </Text>
           </Animated.View>
         )}
-
-        {thumbnailTracks.map((track, index) => (
-          <TouchableOpacity
-            key={track.videoTrackSid}
-            style={[styles.pip, { right: 16 + (90 + 8) * (index + 1) }]}
-            onPress={() => swapToMain(track.videoTrackSid)}
-            activeOpacity={0.85}
-          >
-            <TwilioVideoParticipantView
-              style={StyleSheet.absoluteFill}
-              trackIdentifier={{
-                participantSid: track.participantSid,
-                videoTrackSid: track.videoTrackSid,
-              }}
-            />
-            <View style={styles.pipExpandIcon}>
-              <Ionicons name="expand-outline" size={12} color="#fff" />
-            </View>
-            <Text style={styles.pipLabel} numberOfLines={1}>
-              {resolveParticipantName(
-                participantIdentities.get(track.participantSid) ?? "",
-              )}
-            </Text>
-          </TouchableOpacity>
-        ))}
 
         {/* Local PiP */}
         <View style={styles.pip}>
