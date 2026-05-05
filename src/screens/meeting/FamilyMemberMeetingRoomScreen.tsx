@@ -22,6 +22,7 @@ import type { RootStackParamList } from "../../navigation/types";
 import { useMeetingRoom } from "../../hooks/useMeetingRoom";
 import { ParticipantAvatar } from "../../components/meeting/ParticipantAvatar";
 import { ControlBtn } from "../../components/meeting/ControlBtn";
+import { getInitials } from "@/utils/functions";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Meeting">;
 
@@ -55,6 +56,7 @@ export function FamilyMemberMeetingRoomScreen({ route, navigation }: Props) {
     focusedTrack,
     thumbnailTracks,
     participantIdentities,
+    disabledVideoTrackSids,
     toggleMute,
     toggleCamera,
     flipCamera,
@@ -68,6 +70,8 @@ export function FamilyMemberMeetingRoomScreen({ route, navigation }: Props) {
     handleParticipantDisconnected,
     handleParticipantAddedVideoTrack,
     handleParticipantRemovedVideoTrack,
+    handleParticipantEnabledVideoTrack,
+    handleParticipantDisabledVideoTrack,
     handleDataTrackMessageReceived,
   } = meeting;
 
@@ -109,6 +113,18 @@ export function FamilyMemberMeetingRoomScreen({ route, navigation }: Props) {
                     videoTrackSid: track.videoTrackSid,
                   }}
                 />
+                {disabledVideoTrackSids.has(track.videoTrackSid) && (
+                  <View style={[StyleSheet.absoluteFill, styles.cameraOffOverlay]}>
+                    <ParticipantAvatar
+                      initials={getInitials(
+                        resolveParticipantName(
+                          participantIdentities.get(track.participantSid) ?? "",
+                        ),
+                        "?",
+                      )}
+                    />
+                  </View>
+                )}
                 {!isFocused && (
                   <>
                     <View style={styles.pipExpandIcon}>
@@ -265,6 +281,8 @@ export function FamilyMemberMeetingRoomScreen({ route, navigation }: Props) {
         onRoomParticipantDidDisconnect={handleParticipantDisconnected}
         onParticipantAddedVideoTrack={handleParticipantAddedVideoTrack}
         onParticipantRemovedVideoTrack={handleParticipantRemovedVideoTrack}
+        onParticipantEnabledVideoTrack={handleParticipantEnabledVideoTrack}
+        onParticipantDisabledVideoTrack={handleParticipantDisabledVideoTrack}
         onDataTrackMessageReceived={handleDataTrackMessageReceived}
       />
 
@@ -421,4 +439,5 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   connectingText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  cameraOffOverlay: { backgroundColor: TEAL, zIndex: 1 },
 });

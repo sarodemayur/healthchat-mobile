@@ -55,6 +55,7 @@ export function useMeetingRoom({
   const [otoscopeOn, setOtoscopeOn] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [focusedTrackSid, setFocusedTrackSid] = useState<string | null>(null);
+  const [disabledVideoTrackSids, setDisabledVideoTrackSids] = useState<Set<string>>(new Set());
   const [participantIdentities, setParticipantIdentities] = useState<
     Map<string, string>
   >(new Map());
@@ -247,6 +248,9 @@ export function useMeetingRoom({
         });
         return next;
       });
+      if (!track.enabled) {
+        setDisabledVideoTrackSids((prev) => new Set(prev).add(track.trackSid));
+      }
     },
     [],
   );
@@ -258,6 +262,29 @@ export function useMeetingRoom({
         next.delete(track.trackSid);
         return next;
       });
+      setDisabledVideoTrackSids((prev) => {
+        const next = new Set(prev);
+        next.delete(track.trackSid);
+        return next;
+      });
+    },
+    [],
+  );
+
+  const handleParticipantEnabledVideoTrack = useCallback(
+    ({ track }: TrackEventCbArgs) => {
+      setDisabledVideoTrackSids((prev) => {
+        const next = new Set(prev);
+        next.delete(track.trackSid);
+        return next;
+      });
+    },
+    [],
+  );
+
+  const handleParticipantDisabledVideoTrack = useCallback(
+    ({ track }: TrackEventCbArgs) => {
+      setDisabledVideoTrackSids((prev) => new Set(prev).add(track.trackSid));
     },
     [],
   );
@@ -438,6 +465,7 @@ export function useMeetingRoom({
     focusedTrack,
     thumbnailTracks,
     participantIdentities,
+    disabledVideoTrackSids,
     // actions
     toggleMute,
     toggleCamera,
@@ -455,6 +483,8 @@ export function useMeetingRoom({
     handleParticipantDisconnected,
     handleParticipantAddedVideoTrack,
     handleParticipantRemovedVideoTrack,
+    handleParticipantEnabledVideoTrack,
+    handleParticipantDisabledVideoTrack,
     handleDataTrackMessageReceived,
   };
 }

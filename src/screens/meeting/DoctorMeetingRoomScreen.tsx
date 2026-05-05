@@ -73,6 +73,7 @@ export function DoctorMeetingRoomScreen({ route, navigation }: Props) {
     focusedTrack,
     thumbnailTracks,
     participantIdentities,
+    disabledVideoTrackSids,
     toggleMute,
     toggleCamera,
     flipCamera,
@@ -88,6 +89,8 @@ export function DoctorMeetingRoomScreen({ route, navigation }: Props) {
     handleParticipantDisconnected,
     handleParticipantAddedVideoTrack,
     handleParticipantRemovedVideoTrack,
+    handleParticipantEnabledVideoTrack,
+    handleParticipantDisabledVideoTrack,
     handleDataTrackMessageReceived,
   } = meeting;
 
@@ -158,6 +161,18 @@ export function DoctorMeetingRoomScreen({ route, navigation }: Props) {
                     videoTrackSid: track.videoTrackSid,
                   }}
                 />
+                {disabledVideoTrackSids.has(track.videoTrackSid) && (
+                  <View style={[StyleSheet.absoluteFill, styles.cameraOffOverlay]}>
+                    <ParticipantAvatar
+                      initials={getInitials(
+                        resolveParticipantName(
+                          participantIdentities.get(track.participantSid) ?? "",
+                        ),
+                        "?",
+                      )}
+                    />
+                  </View>
+                )}
                 {!isFocused && (
                   <>
                     <View style={styles.pipExpandIcon}>
@@ -368,6 +383,8 @@ export function DoctorMeetingRoomScreen({ route, navigation }: Props) {
         onRoomParticipantDidDisconnect={handleParticipantDisconnected}
         onParticipantAddedVideoTrack={handleParticipantAddedVideoTrack}
         onParticipantRemovedVideoTrack={handleParticipantRemovedVideoTrack}
+        onParticipantEnabledVideoTrack={handleParticipantEnabledVideoTrack}
+        onParticipantDisabledVideoTrack={handleParticipantDisabledVideoTrack}
         onDataTrackMessageReceived={handleDataTrackMessageReceived}
       />
 
@@ -593,4 +610,5 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   connectingText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  cameraOffOverlay: { backgroundColor: TEAL, zIndex: 1 },
 });
