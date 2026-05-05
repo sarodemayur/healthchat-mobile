@@ -68,12 +68,13 @@ export function AppointmentDetailScreen({ route, navigation }: any) {
   const [isJoining, setIsJoining] = useState(false);
   const [{ data, fetching }] = useGetAppointmentByIdSubscription({
     variables: { appointment_id: appointmentId },
+    pause: !appointmentId,
   });
 
   const [, updateAppointment] = useUpdateAppointmentMutation();
   const [, getCallToken] = useGetCallTokenMutation();
 
-  const appointment = data?.appointments_by_pk ?? null;
+  const appointment = data?.appointment ?? null;
 
   if (fetching && !appointment) return <LoadingScreen />;
   if (!appointment) {
@@ -84,8 +85,8 @@ export function AppointmentDetailScreen({ route, navigation }: any) {
     );
   }
 
-  const start = parseISO(appointment.time_slot_from ?? '');
-  const end = parseISO(appointment.time_slot_to ?? '');
+  const start = parseISO(appointment.time_slot_from ?? "");
+  const end = parseISO(appointment.time_slot_to ?? "");
   const vitals = appointment.patient_vitals ?? undefined;
 
   const canJoin =
@@ -203,32 +204,40 @@ export function AppointmentDetailScreen({ route, navigation }: any) {
             value={
               vitals.blood_pressure_systolic && vitals.blood_pressure_diastolic
                 ? `${vitals.blood_pressure_systolic}/${vitals.blood_pressure_diastolic}`
-                : vitals.blood_pressure ?? undefined
+                : (vitals.blood_pressure ?? undefined)
             }
             unit="mmHg"
           />
-          <VitalsRow label="Heart Rate" value={vitals.heart_rate ?? undefined} unit="bpm" />
+          <VitalsRow
+            label="Heart Rate"
+            value={vitals.heart_rate ?? undefined}
+            unit="bpm"
+          />
           <VitalsRow
             label="Respiratory Rate"
             value={vitals.respiratory_rate ?? undefined}
             unit="breaths/min"
           />
-          <VitalsRow label="Temperature" value={vitals.temperature ?? undefined} unit="°F" />
+          <VitalsRow
+            label="Temperature"
+            value={vitals.temperature ?? undefined}
+            unit="°F"
+          />
           <VitalsRow
             label="Oxygen Saturation"
             value={vitals.oximetry ?? undefined}
             unit="%"
           />
-          <VitalsRow label="Weight" value={vitals.weight ?? undefined} unit="lbs" />
-          <VitalsRow label="Height" value={vitals.height ?? undefined} unit="in" />
-        </View>
-      ) : null}
-
-      {/* SOAP Note */}
-      {appointment.soap_note ? (
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>SOAP Note</Text>
-          <Text style={styles.soapText}>{appointment.soap_note}</Text>
+          <VitalsRow
+            label="Weight"
+            value={vitals.weight ?? undefined}
+            unit="lbs"
+          />
+          <VitalsRow
+            label="Height"
+            value={vitals.height ?? undefined}
+            unit="in"
+          />
         </View>
       ) : null}
 

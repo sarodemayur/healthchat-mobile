@@ -6,9 +6,13 @@ import {
   DataTrackEventCbArgs,
 } from "react-native-twilio-video-webrtc";
 import { useAuth } from "../context/AuthContext";
-import { useGetAppointmentByIdSubscription, useLeaveCallMutation } from "../graphql/appointments.generated";
+import {
+  GetAppointmentByIdSubscription,
+  useGetAppointmentByIdSubscription,
+  useLeaveCallMutation,
+} from "../graphql/appointments.generated";
 import { getInitials } from "@/utils/functions";
-
+import { isEmpty } from "lodash";
 interface VideoTrack {
   participantSid: string;
   videoTrackSid: string;
@@ -21,6 +25,8 @@ interface UseMeetingRoomOptions {
   onDisconnect: () => void;
 }
 
+export type IMeetAppointment = GetAppointmentByIdSubscription["appointment"];
+
 export function useMeetingRoom({
   appointmentId,
   token,
@@ -28,7 +34,7 @@ export function useMeetingRoom({
   onDisconnect,
 }: UseMeetingRoomOptions) {
   const { user } = useAuth();
-
+  const [appointment, setAppointment] = useState<IMeetAppointment | null>(null);
   const twilioRef = useRef<TwilioVideo | null>(null);
   const twilioCallbackRef = useCallback((ref: TwilioVideo | null) => {
     twilioRef.current = ref;
@@ -63,14 +69,18 @@ export function useMeetingRoom({
   const [{ data: appointmentData }] = useGetAppointmentByIdSubscription({
     variables: { appointment_id: appointmentId },
   });
-  const appointment = appointmentData?.appointments_by_pk;
+  useEffect(() => {
+    if (!isEmpty(appointmentData)) {
+      setAppointment(appointmentData?.appointment);
+    }
+  }, [appointmentData]);
 
   const [, leaveCall] = useLeaveCallMutation();
 
   const isCurrentUserDoctor = user?.id === appointment?.doctor_id;
   const remoteName = isCurrentUserDoctor
-    ? (appointment?.nurse?.user?.display_name ?? appointment?.nurse_name)
-    : (appointment?.doctor?.user?.display_name ?? appointment?.doctor_name);
+    ? appointment?.nurse_name
+    : appointment?.doctor_name;
   const remoteInitials = getInitials(remoteName, "?");
   const localInitials = getInitials(user?.display_name, "ME");
 
@@ -82,19 +92,13 @@ export function useMeetingRoom({
     (identity: string): string => {
       if (!appointment) return "A participant";
       if (identity === appointment.doctor_id)
-        return (
-          appointment.doctor?.user?.display_name ??
-          appointment.doctor_name ??
-          "Doctor"
-        );
+        return appointment.doctor_name ?? "Doctor";
       if (identity === appointment.nurse_id)
-        return (
-          appointment.nurse?.user?.display_name ??
-          appointment.nurse_name ??
-          "Nurse"
-        );
+        return appointment.nurse_name ?? "Nurse";
       if (identity === "family_member")
-        return appointment.family_mem_name ?? appointment.patient_name ?? "Patient";
+        return (
+          appointment.family_mem_name ?? appointment.patient_name ?? "Patient"
+        );
       return "A participant";
     },
     [appointment],
