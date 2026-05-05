@@ -41,9 +41,6 @@ export function DoctorMeetingRoomScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [showActionsPanel, setShowActionsPanel] = useState(false);
   const [showDevicePanel, setShowDevicePanel] = useState(false);
-  const [stethoscopeOn, setStethoscopeOn] = useState(false);
-  const [handheldOn, setHandheldOn] = useState(false);
-  const [otoscopeOn, setOtoscopeOn] = useState(false);
 
   const meeting = useMeetingRoom({
     appointmentId,
@@ -61,6 +58,12 @@ export function DoctorMeetingRoomScreen({ route, navigation }: Props) {
     isRemoteMuted,
     isCameraOff,
     isRecording,
+    stethoscopeOn,
+    handheldOn,
+    otoscopeOn,
+    setStethoscopeOn,
+    setHandheldOn,
+    setOtoscopeOn,
     callDuration,
     participantBanner,
     bannerAnim,
@@ -92,7 +95,7 @@ export function DoctorMeetingRoomScreen({ route, navigation }: Props) {
       label: "Stethoscope",
       value: stethoscopeOn,
       set: setStethoscopeOn,
-      icon: "stethoscope",
+      icon: "pulse-outline",
       dataType: "stethoscope",
     },
     {

@@ -46,6 +46,9 @@ export function useMeetingRoom({
   const [isRemoteMuted, setIsRemoteMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [stethoscopeOn, setStethoscopeOn] = useState(false);
+  const [handheldOn, setHandheldOn] = useState(false);
+  const [otoscopeOn, setOtoscopeOn] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [focusedTrackSid, setFocusedTrackSid] = useState<string | null>(null);
   const [participantIdentities, setParticipantIdentities] = useState<
@@ -329,6 +332,15 @@ export function useMeetingRoom({
             setIsRemoteMuted(!p.status);
             break;
           }
+          case "stethoscope":
+            setStethoscopeOn(msg.status ?? false);
+            break;
+          case "handHeldCamera":
+            setHandheldOn(msg.status ?? false);
+            break;
+          case "otoscopeCamera":
+            setOtoscopeOn(msg.status ?? false);
+            break;
           default:
             break;
         }
@@ -408,6 +420,12 @@ export function useMeetingRoom({
     isCameraOff,
     isRecording,
     setIsRecording,
+    stethoscopeOn,
+    handheldOn,
+    otoscopeOn,
+    setStethoscopeOn,
+    setHandheldOn,
+    setOtoscopeOn,
     callDuration,
     participantBanner,
     bannerAnim,
