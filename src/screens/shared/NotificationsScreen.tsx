@@ -7,29 +7,30 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useQuery, useMutation } from 'urql';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
-import { GET_NOTIFICATIONS, MARK_ALL_READ, MARK_NOTIFICATION_READ } from '../../graphql/notifications';
+import {
+  useGetNotificationsQuery,
+  useMarkNotificationReadMutation,
+  useMarkAllNotificationsReadMutation,
+} from '../../graphql/notifications.generated';
 import { LoadingScreen } from '../../components/common/LoadingScreen';
-import { Notification } from '../../types';
 import { BORDER_COLOR, PRIMARY_COLOR, SURFACE_COLOR, TEXT_COLOR, TEXT_COLOR_LIGHT } from '../../utils/config';
 
 export function NotificationsScreen() {
   const { user } = useAuth();
 
-  const [{ data, fetching }, refetch] = useQuery({
-    query: GET_NOTIFICATIONS,
-    variables: { user_id: user?.id },
+  const [{ data, fetching }, refetch] = useGetNotificationsQuery({
+    variables: { user_id: user?.id ?? '' },
     pause: !user?.id,
   });
 
-  const [, markRead] = useMutation(MARK_NOTIFICATION_READ);
-  const [, markAllRead] = useMutation(MARK_ALL_READ);
+  const [, markRead] = useMarkNotificationReadMutation();
+  const [, markAllRead] = useMarkAllNotificationsReadMutation();
 
-  const notifications: Notification[] = data?.notifications ?? [];
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const notifications = data?.notifications ?? [];
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   if (fetching && !data) return <LoadingScreen />;
 
@@ -38,7 +39,7 @@ export function NotificationsScreen() {
       {unreadCount > 0 ? (
         <TouchableOpacity
           style={styles.markAllBtn}
-          onPress={() => markAllRead({ user_id: user?.id })}
+          onPress={() => markAllRead({ user_id: user?.id ?? '' })}
         >
           <Text style={styles.markAllText}>Mark all as read ({unreadCount})</Text>
         </TouchableOpacity>
@@ -56,14 +57,13 @@ export function NotificationsScreen() {
         }
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={[styles.item, !item.read && styles.itemUnread]}
+            style={[styles.item, !item.is_read && styles.itemUnread]}
             onPress={() => markRead({ id: item.id })}
             activeOpacity={0.7}
           >
-            <View style={[styles.dot, !item.read && styles.dotActive]} />
+            <View style={[styles.dot, !item.is_read && styles.dotActive]} />
             <View style={styles.itemContent}>
-              <Text style={styles.itemTitle}>{item.title}</Text>
-              <Text style={styles.itemBody} numberOfLines={2}>{item.body}</Text>
+              <Text style={styles.itemTitle} numberOfLines={2}>{item.message}</Text>
               <Text style={styles.itemTime}>
                 {formatDistanceToNow(parseISO(item.created_at), { addSuffix: true })}
               </Text>

@@ -1,0 +1,21 @@
+query GetNurseByUserId($user_id: uuid!) {
+  nurses(where: { user_id: { _eq: $user_id } }) {
+    id
+    created_at
+    created_by
+    deleted_at
+    is_active
+    is_admin
+    facility_account_id
+    location_id
+    updated_at
+    updated_by
+    location {
+      id
+      location_name
+      facility_account {
+        is_subscribed
+      }
+    }
+  }
+}

@@ -5,10 +5,8 @@ import {
   TrackEventCbArgs,
   DataTrackEventCbArgs,
 } from "react-native-twilio-video-webrtc";
-import { useMutation, useQuery, useSubscription } from "urql";
 import { useAuth } from "../context/AuthContext";
-import { GET_APPOINTMENT_BY_ID, LEAVE_CALL } from "../graphql/appointments";
-import type { Appointment } from "../types";
+import { useGetAppointmentByIdSubscription, useLeaveCallMutation } from "../graphql/appointments.generated";
 import { getInitials } from "@/utils/functions";
 
 interface VideoTrack {
@@ -62,15 +60,12 @@ export function useMeetingRoom({
   const bannerAnim = useRef(new Animated.Value(0)).current;
   const bannerAnimRef = useRef<Animated.CompositeAnimation | null>(null);
 
-  const [{ data: appointmentData }] = useSubscription<{
-    appointments_by_pk: Appointment;
-  }>({
-    query: GET_APPOINTMENT_BY_ID,
+  const [{ data: appointmentData }] = useGetAppointmentByIdSubscription({
     variables: { appointment_id: appointmentId },
   });
   const appointment = appointmentData?.appointments_by_pk;
 
-  const [, leaveCall] = useMutation(LEAVE_CALL);
+  const [, leaveCall] = useLeaveCallMutation();
 
   const isCurrentUserDoctor = user?.id === appointment?.doctor_id;
   const remoteName = isCurrentUserDoctor
@@ -99,7 +94,7 @@ export function useMeetingRoom({
           "Nurse"
         );
       if (identity === "family_member")
-        return appointment.family_mem_name ?? appointment.patient_name;
+        return appointment.family_mem_name ?? appointment.patient_name ?? "Patient";
       return "A participant";
     },
     [appointment],

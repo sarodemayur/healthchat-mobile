@@ -13,7 +13,6 @@ import {
   ActivityIndicator,
   Dimensions,
 } from "react-native";
-import { useMutation, useQuery } from "urql";
 import {
   addMinutes,
   isBefore,
@@ -40,11 +39,11 @@ import {
   ERROR_COLOR,
 } from "../../utils/config";
 import {
-  GET_LOCATION_BY_NURSE_ID,
-  GET_DOCTORS_FOR_APPOINTMENT,
-  GET_DOCTOR_WEEKLY_AVAILABILITY,
-  CREATE_APPOINTMENT,
-} from "../../graphql/appointments";
+  useGetLocationByNurseIdQuery,
+  useGetDoctorsForAppointmentQuery,
+  useGetDoctorWeeklyAvailabilityQuery,
+  useCreateAppointmentMutation,
+} from "../../graphql/appointments.generated";
 import type { NurseStackParamList } from "../../navigation/types";
 
 type Props = NativeStackScreenProps<NurseStackParamList, "CreateAppointment">;
@@ -81,13 +80,13 @@ const STEP_TITLES = ["Select Doctor", "Pick a Slot", "Patient's Details"];
 
 interface Doctor {
   id: string;
-  user: { display_name: string; profile?: { avatar_url?: string } };
+  user: { display_name: string | null; profile?: { avatar_url?: string | null } | null };
 }
 
 interface WeeklySlot {
-  available_from: string;
-  available_till: string;
-  day: string;
+  available_from: string | null;
+  available_till: string | null;
+  day: string | null;
 }
 
 function parseTimeStr(timeStr: string): Date | null {
@@ -223,36 +222,33 @@ export function CreateAppointmentScreen({ navigation }: Props) {
   const [submitting, setSubmitting] = useState(false);
 
   // Queries
-  const [{ data: locationData }] = useQuery({
-    query: GET_LOCATION_BY_NURSE_ID,
-    variables: { user_id: user?.id },
+  const [{ data: locationData }] = useGetLocationByNurseIdQuery({
+    variables: { user_id: user?.id ?? '' },
     pause: !user?.id,
   });
   const locationId: string | undefined =
     locationData?.nurses?.[0]?.location?.id;
 
-  const [{ data: doctorsData, fetching: fetchingDoctors }] = useQuery({
-    query: GET_DOCTORS_FOR_APPOINTMENT,
+  const [{ data: doctorsData, fetching: fetchingDoctors }] = useGetDoctorsForAppointmentQuery({
     variables: { location_id: locationId },
     pause: !locationId,
   });
   const doctors: Doctor[] = doctorsData?.doctors ?? [];
 
-  const [{ data: availabilityData }] = useQuery({
-    query: GET_DOCTOR_WEEKLY_AVAILABILITY,
+  const [{ data: availabilityData }] = useGetDoctorWeeklyAvailabilityQuery({
     variables: { doctor_id: selectedDoctor?.id },
     pause: !selectedDoctor?.id,
   });
   const weeklyAvailability: WeeklySlot[] =
     availabilityData?.doctor_weekly_availability ?? [];
 
-  const [, executeCreate] = useMutation(CREATE_APPOINTMENT);
+  const [, executeCreate] = useCreateAppointmentMutation();
 
   // Filtered doctors list
   const filteredDoctors = useMemo(() => {
     if (!searchQuery.trim()) return doctors;
     const q = searchQuery.toLowerCase();
-    return doctors.filter((d) => d.user.display_name.toLowerCase().includes(q));
+    return doctors.filter((d) => d.user.display_name?.toLowerCase().includes(q));
   }, [doctors, searchQuery]);
 
   // Calendar state
@@ -277,7 +273,7 @@ export function CreateAppointmentScreen({ navigation }: Props) {
     const dayName = DAY_NAMES[selectedDate.getDay()];
     const avail = weeklyAvailability.find((a) => a.day === dayName);
     if (!avail) return [];
-    return generateSlots(avail.available_from, avail.available_till);
+    return generateSlots(avail.available_from ?? '', avail.available_till ?? '');
   }, [selectedDate, weeklyAvailability]);
 
   const handleDoctorSelect = (doctor: Doctor) => {
@@ -382,7 +378,7 @@ export function CreateAppointmentScreen({ navigation }: Props) {
                 onPress={() => handleDoctorSelect(item)}
                 activeOpacity={0.7}
               >
-                <InitialsAvatar name={item.user.display_name} />
+                <InitialsAvatar name={item.user.display_name ?? ''} />
                 <Text
                   style={[
                     styles.doctorName,
@@ -422,7 +418,7 @@ export function CreateAppointmentScreen({ navigation }: Props) {
     >
       {/* Selected Doctor */}
       <View style={styles.selectedDocRow}>
-        <InitialsAvatar name={selectedDoctor!.user.display_name} size={34} />
+        <InitialsAvatar name={selectedDoctor!.user.display_name ?? ''} size={34} />
         <Text style={styles.selectedDocName}>
           {selectedDoctor!.user.display_name}
         </Text>

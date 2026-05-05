@@ -8,10 +8,9 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSubscription } from "urql";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "../../context/AuthContext";
-import { GET_NURSE_APPOINTMENTS } from "../../graphql/appointments";
+import { useGetNurseAppointmentsSubscription } from "../../graphql/appointments.generated";
 import { AppointmentCard } from "../../components/common/AppointmentCard";
 import { LoadingScreen } from "../../components/common/LoadingScreen";
 import { Appointment, AppointmentState } from "../../types";
@@ -49,16 +48,15 @@ export function NurseAppointmentsScreen({ navigation }: Props) {
     });
   }, [navigation]);
 
-  const [{ data, fetching }, refetch] = useSubscription({
-    query: GET_NURSE_APPOINTMENTS,
+  const [{ data, fetching }, refetch] = useGetNurseAppointmentsSubscription({
     variables: {
-      facility_account_id: nurse?.facility_account_id,
+      facility_account_id: nurse?.facility_account_id ?? '',
       states: TABS[tabIndex].states,
     },
     pause: !nurse?.facility_account_id,
   });
 
-  const appointments: Appointment[] = data?.appointments ?? [];
+  const appointments = data?.appointments ?? [];
 
   if (fetching && !data)
     return <LoadingScreen message="Loading appointments…" />;

@@ -1,0 +1,26 @@
+query GetMyProfile($user_id: uuid!) {
+  users_by_pk(id: $user_id) {
+    id
+    display_name
+    account {
+      email
+      default_role
+    }
+    profile {
+      id
+      first_name
+      last_name
+      email
+      phone
+      avatar_url
+      timezone
+      specialization
+    }
+  }
+}
+
+mutation UpdateProfile($user_id: uuid!, $set: profile_set_input!) {
+  update_profile(where: { user_id: { _eq: $user_id } }, _set: $set) {
+    affected_rows
+  }
+}

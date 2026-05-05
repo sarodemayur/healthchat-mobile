@@ -7,10 +7,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSubscription } from "urql";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "../../context/AuthContext";
-import { GET_DOCTOR_APPOINTMENTS } from "../../graphql/appointments";
+import { useGetDoctorAppointmentsSubscription } from "../../graphql/appointments.generated";
 import { AppointmentCard } from "../../components/common/AppointmentCard";
 import { LoadingScreen } from "../../components/common/LoadingScreen";
 import { Appointment, AppointmentState } from "../../types";
@@ -33,13 +32,12 @@ export function DoctorAppointmentsScreen({ navigation }: Props) {
   const { user } = useAuth();
   const [tabIndex, setTabIndex] = useState(0);
 
-  const [{ data, fetching }, refetch] = useSubscription({
-    query: GET_DOCTOR_APPOINTMENTS,
-    variables: { doctor_id: user?.roleId, states: TABS[tabIndex].states },
+  const [{ data, fetching }, refetch] = useGetDoctorAppointmentsSubscription({
+    variables: { doctor_id: user?.roleId ?? '', states: TABS[tabIndex].states },
     pause: !user?.roleId,
   });
 
-  const appointments: Appointment[] = data?.appointments ?? [];
+  const appointments = data?.appointments ?? [];
 
   if (fetching && !data)
     return <LoadingScreen message="Loading appointments…" />;

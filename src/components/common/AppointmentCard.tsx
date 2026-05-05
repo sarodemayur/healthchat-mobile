@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { format, parseISO } from "date-fns";
-import { Appointment } from "../../types";
+import { AppointmentState } from "../../types";
 import {
   BORDER_COLOR,
   PRIMARY_COLOR,
@@ -11,8 +11,21 @@ import {
 } from "../../utils/config";
 import { StatusBadge } from "./StatusBadge";
 
+interface AppointmentCardItem {
+  id: string;
+  time_slot_from?: string | null;
+  time_slot_to?: string | null;
+  patient_name?: string | null;
+  state: AppointmentState;
+  doctor_name?: string | null;
+  nurse_name?: string | null;
+  doctor?: { user: { display_name?: string | null } } | null;
+  nurse?: { user: { display_name?: string | null } } | null;
+  location?: { location_name?: string | null } | null;
+}
+
 interface AppointmentCardProps {
-  appointment: Appointment;
+  appointment: AppointmentCardItem;
   onPress: () => void;
   role: "doctor" | "nurse";
 }
@@ -22,8 +35,8 @@ export function AppointmentCard({
   onPress,
   role,
 }: AppointmentCardProps) {
-  const start = parseISO(appointment.time_slot_from);
-  const end = parseISO(appointment.time_slot_to);
+  const start = parseISO(appointment.time_slot_from ?? '');
+  const end = parseISO(appointment.time_slot_to ?? '');
   const dateStr = format(start, "EEE, MMM d");
   const timeStr = `${format(start, "h:mm a")} – ${format(end, "h:mm a")}`;
 

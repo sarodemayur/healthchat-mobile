@@ -1,0 +1,39 @@
+query GetNotifications($user_id: uuid!) {
+  notifications(
+    where: { deliver_to: { _eq: $user_id } }
+    order_by: { created_at: desc }
+    limit: 50
+  ) {
+    id
+    message
+    is_read
+    created_at
+  }
+}
+
+mutation MarkNotificationRead($id: uuid!) {
+  update_notifications_by_pk(pk_columns: { id: $id }, _set: { is_read: true }) {
+    id
+  }
+}
+
+mutation MarkAllNotificationsRead($user_id: uuid!) {
+  update_notifications(
+    where: { deliver_to: { _eq: $user_id } }
+    _set: { is_read: true }
+  ) {
+    affected_rows
+  }
+}
+
+subscription SubscribeNotifications($user_id: uuid!) {
+  notifications(
+    where: { deliver_to: { _eq: $user_id }, is_read: { _eq: false } }
+    order_by: { created_at: desc }
+  ) {
+    id
+    message
+    is_read
+    created_at
+  }
+}

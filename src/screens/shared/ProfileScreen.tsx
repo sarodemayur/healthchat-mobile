@@ -1,9 +1,8 @@
 import React from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useQuery } from "urql";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../context/AuthContext";
-import { GET_MY_PROFILE } from "../../graphql/profile";
+import { useGetMyProfileQuery } from "../../graphql/profile.generated";
 import { LoadingScreen } from "../../components/common/LoadingScreen";
 import { Button } from "../../components/common/Button";
 import {
@@ -56,9 +55,8 @@ const rowStyles = StyleSheet.create({
 export function ProfileScreen() {
   const { user, logout } = useAuth();
 
-  const [{ data, fetching }] = useQuery({
-    query: GET_MY_PROFILE,
-    variables: { user_id: user?.id },
+  const [{ data, fetching }] = useGetMyProfileQuery({
+    variables: { user_id: user?.id ?? "" },
     pause: !user?.id,
   });
 
@@ -111,13 +109,17 @@ export function ProfileScreen() {
         <ProfileRow
           icon="mail-outline"
           label="Email"
-          value={profile?.email ?? user?.email}
+          value={profile?.email ?? user?.email ?? undefined}
         />
-        <ProfileRow icon="call-outline" label="Phone" value={profile?.phone} />
+        <ProfileRow
+          icon="call-outline"
+          label="Phone"
+          value={profile?.phone ?? undefined}
+        />
         <ProfileRow
           icon="time-outline"
           label="Timezone"
-          value={profile?.timezone}
+          value={profile?.timezone ?? undefined}
         />
         {profile?.specialization ? (
           <ProfileRow

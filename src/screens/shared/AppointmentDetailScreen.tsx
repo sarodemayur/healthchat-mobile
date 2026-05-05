@@ -1,15 +1,14 @@
 import React, { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useMutation, useSubscription } from "urql";
 import { Ionicons } from "@expo/vector-icons";
 import { format, parseISO } from "date-fns";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "../../context/AuthContext";
 import {
-  GET_APPOINTMENT_BY_ID,
-  UPDATE_APPOINTMENT,
-  GET_CALL_TOKEN,
-} from "../../graphql/appointments";
+  useGetAppointmentByIdSubscription,
+  useUpdateAppointmentMutation,
+  useGetCallTokenMutation,
+} from "../../graphql/appointments.generated";
 import { LoadingScreen } from "../../components/common/LoadingScreen";
 import { StatusBadge } from "../../components/common/StatusBadge";
 import { Button } from "../../components/common/Button";
@@ -67,15 +66,14 @@ export function AppointmentDetailScreen({ route, navigation }: any) {
   const { appointmentId } = route.params as { appointmentId: string };
   const { user } = useAuth();
   const [isJoining, setIsJoining] = useState(false);
-  const [{ data, fetching }] = useSubscription({
-    query: GET_APPOINTMENT_BY_ID,
+  const [{ data, fetching }] = useGetAppointmentByIdSubscription({
     variables: { appointment_id: appointmentId },
   });
 
-  const [, updateAppointment] = useMutation(UPDATE_APPOINTMENT);
-  const [, getCallToken] = useMutation(GET_CALL_TOKEN);
+  const [, updateAppointment] = useUpdateAppointmentMutation();
+  const [, getCallToken] = useGetCallTokenMutation();
 
-  const appointment: Appointment | null = data?.appointments_by_pk ?? null;
+  const appointment = data?.appointments_by_pk ?? null;
 
   if (fetching && !appointment) return <LoadingScreen />;
   if (!appointment) {
@@ -86,9 +84,9 @@ export function AppointmentDetailScreen({ route, navigation }: any) {
     );
   }
 
-  const start = parseISO(appointment.time_slot_from);
-  const end = parseISO(appointment.time_slot_to);
-  const vitals: PatientVitals | undefined = appointment.patient_vitals;
+  const start = parseISO(appointment.time_slot_from ?? '');
+  const end = parseISO(appointment.time_slot_to ?? '');
+  const vitals = appointment.patient_vitals ?? undefined;
 
   const canJoin =
     appointment.state === "PENDING" || appointment.state === "STARTED";
@@ -164,14 +162,14 @@ export function AppointmentDetailScreen({ route, navigation }: any) {
           <View style={styles.teamRow}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>
-                {appointment.doctor.user.profile.first_name?.[0]}
-                {appointment.doctor.user.profile.last_name?.[0]}
+                {appointment.doctor.user.profile?.first_name?.[0]}
+                {appointment.doctor.user.profile?.last_name?.[0]}
               </Text>
             </View>
             <View>
               <Text style={styles.teamName}>
-                Dr. {appointment.doctor.user.profile.first_name}{" "}
-                {appointment.doctor.user.profile.last_name}
+                Dr. {appointment.doctor.user.profile?.first_name}{" "}
+                {appointment.doctor.user.profile?.last_name}
               </Text>
               <Text style={styles.teamRole}>Doctor</Text>
             </View>
@@ -181,14 +179,14 @@ export function AppointmentDetailScreen({ route, navigation }: any) {
           <View style={[styles.teamRow, { marginTop: 12 }]}>
             <View style={[styles.avatar, { backgroundColor: "#E3F2FD" }]}>
               <Text style={[styles.avatarText, { color: "#1565C0" }]}>
-                {appointment.nurse.user.profile.first_name?.[0]}
-                {appointment.nurse.user.profile.last_name?.[0]}
+                {appointment.nurse.user.profile?.first_name?.[0]}
+                {appointment.nurse.user.profile?.last_name?.[0]}
               </Text>
             </View>
             <View>
               <Text style={styles.teamName}>
-                {appointment.nurse.user.profile.first_name}{" "}
-                {appointment.nurse.user.profile.last_name}
+                {appointment.nurse.user.profile?.first_name}{" "}
+                {appointment.nurse.user.profile?.last_name}
               </Text>
               <Text style={styles.teamRole}>Nurse</Text>
             </View>
@@ -205,24 +203,24 @@ export function AppointmentDetailScreen({ route, navigation }: any) {
             value={
               vitals.blood_pressure_systolic && vitals.blood_pressure_diastolic
                 ? `${vitals.blood_pressure_systolic}/${vitals.blood_pressure_diastolic}`
-                : vitals.blood_pressure
+                : vitals.blood_pressure ?? undefined
             }
             unit="mmHg"
           />
-          <VitalsRow label="Heart Rate" value={vitals.heart_rate} unit="bpm" />
+          <VitalsRow label="Heart Rate" value={vitals.heart_rate ?? undefined} unit="bpm" />
           <VitalsRow
             label="Respiratory Rate"
-            value={vitals.respiratory_rate}
+            value={vitals.respiratory_rate ?? undefined}
             unit="breaths/min"
           />
-          <VitalsRow label="Temperature" value={vitals.temperature} unit="°F" />
+          <VitalsRow label="Temperature" value={vitals.temperature ?? undefined} unit="°F" />
           <VitalsRow
             label="Oxygen Saturation"
-            value={vitals.oximetry}
+            value={vitals.oximetry ?? undefined}
             unit="%"
           />
-          <VitalsRow label="Weight" value={vitals.weight} unit="lbs" />
-          <VitalsRow label="Height" value={vitals.height} unit="in" />
+          <VitalsRow label="Weight" value={vitals.weight ?? undefined} unit="lbs" />
+          <VitalsRow label="Height" value={vitals.height ?? undefined} unit="in" />
         </View>
       ) : null}
 
