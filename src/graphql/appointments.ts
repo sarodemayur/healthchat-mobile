@@ -1,4 +1,4 @@
-import { gql } from 'urql';
+import { gql } from "urql";
 
 export const APPOINTMENT_FIELDS = `
   id
@@ -56,7 +56,7 @@ export const APPOINTMENT_FIELDS = `
 `;
 
 export const GET_DOCTOR_APPOINTMENTS = gql`
-  query GetDoctorAppointments($doctor_id: uuid!, $states: [appointments_state_enum_enum!]) {
+  subscription GetDoctorAppointments($doctor_id: uuid!, $states: [appointments_state_enum_enum!]) {
     appointments(
       where: {
         doctor_id: { _eq: $doctor_id }
@@ -70,10 +70,10 @@ export const GET_DOCTOR_APPOINTMENTS = gql`
 `;
 
 export const GET_NURSE_APPOINTMENTS = gql`
-  query GetNurseAppointments($nurse_id: uuid!, $states: [appointments_state_enum_enum!]) {
+  subscription GetNurseAppointments($facility_account_id: uuid!, $states: [appointments_state_enum_enum!]) {
     appointments(
       where: {
-        nurse_id: { _eq: $nurse_id }
+        facility_account_id: { _eq: $facility_account_id }
         state: { _in: $states }
       }
       order_by: { time_slot_from: asc }
@@ -84,7 +84,7 @@ export const GET_NURSE_APPOINTMENTS = gql`
 `;
 
 export const GET_APPOINTMENT_BY_ID = gql`
-  query GetAppointmentById($appointment_id: uuid!) {
+  subscription GetAppointmentById($appointment_id: uuid!) {
     appointments_by_pk(id: $appointment_id) {
       ${APPOINTMENT_FIELDS}
       patient_vitals {
@@ -123,7 +123,10 @@ export const SUBSCRIBE_APPOINTMENT = gql`
 `;
 
 export const UPDATE_APPOINTMENT = gql`
-  mutation UpdateAppointment($appointment_id: uuid!, $set: appointments_set_input!) {
+  mutation UpdateAppointment(
+    $appointment_id: uuid!
+    $set: appointments_set_input!
+  ) {
     update_appointments_by_pk(pk_columns: { id: $appointment_id }, _set: $set) {
       id
       state
@@ -213,8 +216,8 @@ export const GET_CALL_TOKEN = gql`
 export const LEAVE_CALL = gql`
   mutation LeaveCall($object: LeaveCallInput!) {
     leaveCall(object: $object) {
-      appointment_status                                                                                                             
-      ok    
+      appointment_status
+      ok
     }
   }
 `;

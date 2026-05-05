@@ -5,7 +5,7 @@ import {
   TrackEventCbArgs,
   DataTrackEventCbArgs,
 } from "react-native-twilio-video-webrtc";
-import { useMutation, useQuery } from "urql";
+import { useMutation, useQuery, useSubscription } from "urql";
 import { useAuth } from "../context/AuthContext";
 import { GET_APPOINTMENT_BY_ID, LEAVE_CALL } from "../graphql/appointments";
 import type { Appointment } from "../types";
@@ -62,7 +62,7 @@ export function useMeetingRoom({
   const bannerAnim = useRef(new Animated.Value(0)).current;
   const bannerAnimRef = useRef<Animated.CompositeAnimation | null>(null);
 
-  const [{ data: appointmentData }] = useQuery<{
+  const [{ data: appointmentData }] = useSubscription<{
     appointments_by_pk: Appointment;
   }>({
     query: GET_APPOINTMENT_BY_ID,

@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useQuery } from "urql";
+import { useSubscription } from "urql";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "../../context/AuthContext";
 import { GET_DOCTOR_APPOINTMENTS } from "../../graphql/appointments";
@@ -33,7 +33,7 @@ export function DoctorAppointmentsScreen({ navigation }: Props) {
   const { user } = useAuth();
   const [tabIndex, setTabIndex] = useState(0);
 
-  const [{ data, fetching }, refetch] = useQuery({
+  const [{ data, fetching }, refetch] = useSubscription({
     query: GET_DOCTOR_APPOINTMENTS,
     variables: { doctor_id: user?.roleId, states: TABS[tabIndex].states },
     pause: !user?.roleId,

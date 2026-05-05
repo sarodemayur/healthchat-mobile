@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "urql";
+import { useSubscription } from "urql";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "../../context/AuthContext";
 import { GET_NURSE_APPOINTMENTS } from "../../graphql/appointments";
@@ -22,6 +22,7 @@ import {
   TEXT_COLOR_LIGHT,
 } from "../../utils/config";
 import type { NurseStackParamList } from "../../navigation/types";
+import { useUserByRole } from "@/hooks/useUserByRole";
 
 type Props = NativeStackScreenProps<NurseStackParamList, "NurseAppointments">;
 
@@ -32,6 +33,7 @@ const TABS: { label: string; states: AppointmentState[] }[] = [
 
 export function NurseAppointmentsScreen({ navigation }: Props) {
   const { user } = useAuth();
+  const { nurse } = useUserByRole();
   const [tabIndex, setTabIndex] = useState(0);
 
   useEffect(() => {
@@ -47,10 +49,13 @@ export function NurseAppointmentsScreen({ navigation }: Props) {
     });
   }, [navigation]);
 
-  const [{ data, fetching }, refetch] = useQuery({
+  const [{ data, fetching }, refetch] = useSubscription({
     query: GET_NURSE_APPOINTMENTS,
-    variables: { nurse_id: user?.roleId, states: TABS[tabIndex].states },
-    pause: !user?.roleId,
+    variables: {
+      facility_account_id: nurse?.facility_account_id,
+      states: TABS[tabIndex].states,
+    },
+    pause: !nurse?.facility_account_id,
   });
 
   const appointments: Appointment[] = data?.appointments ?? [];

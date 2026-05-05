@@ -1,13 +1,6 @@
 import React, { useState } from "react";
-import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { useQuery, useMutation } from "urql";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useMutation, useSubscription } from "urql";
 import { Ionicons } from "@expo/vector-icons";
 import { format, parseISO } from "date-fns";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -22,7 +15,6 @@ import { StatusBadge } from "../../components/common/StatusBadge";
 import { Button } from "../../components/common/Button";
 import {
   PRIMARY_COLOR,
-  SURFACE_COLOR,
   TEXT_COLOR,
   TEXT_COLOR_LIGHT,
   BORDER_COLOR,
@@ -74,8 +66,8 @@ const vitalsStyles = StyleSheet.create({
 export function AppointmentDetailScreen({ route, navigation }: any) {
   const { appointmentId } = route.params as { appointmentId: string };
   const { user } = useAuth();
-  const [isJoining, setIsJoining] = useState(false); 
-  const [{ data, fetching }] = useQuery({
+  const [isJoining, setIsJoining] = useState(false);
+  const [{ data, fetching }] = useSubscription({
     query: GET_APPOINTMENT_BY_ID,
     variables: { appointment_id: appointmentId },
   });
