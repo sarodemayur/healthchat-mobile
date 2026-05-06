@@ -115,11 +115,7 @@ export function useMeetingRoom({
           "Nurse"
         );
       if (identity === "family_member")
-        return (
-          appointmentDetails.family_mem_name ??
-          appointmentDetails.patient_name ??
-          "Patient"
-        );
+        return appointmentDetails.patient_name ?? "Patient";
       return "A participant";
     },
     [appointmentDetails],
