@@ -9,6 +9,7 @@ import { useAuth } from "../context/AuthContext";
 import {
   GetAppointmentByIdSubscription,
   useGetAppointmentByIdSubscription,
+  useGetAppointmentDetailsByIdQuery,
   useLeaveCallMutation,
 } from "../graphql/appointments.generated";
 import { getInitials } from "@/utils/functions";
@@ -55,7 +56,9 @@ export function useMeetingRoom({
   const [otoscopeOn, setOtoscopeOn] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [focusedTrackSid, setFocusedTrackSid] = useState<string | null>(null);
-  const [disabledVideoTrackSids, setDisabledVideoTrackSids] = useState<Set<string>>(new Set());
+  const [disabledVideoTrackSids, setDisabledVideoTrackSids] = useState<
+    Set<string>
+  >(new Set());
   const [participantIdentities, setParticipantIdentities] = useState<
     Map<string, string>
   >(new Map());
@@ -70,6 +73,12 @@ export function useMeetingRoom({
   const [{ data: appointmentData }] = useGetAppointmentByIdSubscription({
     variables: { appointment_id: appointmentId },
   });
+  const [{ data }] = useGetAppointmentDetailsByIdQuery({
+    variables: {
+      appointment_id: appointmentId,
+    },
+  });
+  const appointmentDetails = data?.appointment;
   useEffect(() => {
     if (!isEmpty(appointmentData)) {
       setAppointment(appointmentData?.appointment);
@@ -80,8 +89,9 @@ export function useMeetingRoom({
 
   const isCurrentUserDoctor = user?.id === appointment?.doctor_id;
   const remoteName = isCurrentUserDoctor
-    ? appointment?.nurse_name
-    : appointment?.doctor_name;
+    ? (appointmentDetails?.nurse?.user?.display_name ?? appointment?.nurse_name)
+    : (appointmentDetails?.doctor?.user?.display_name ??
+      appointment?.doctor_name);
   const remoteInitials = getInitials(remoteName, "?");
   const localInitials = getInitials(user?.display_name, "ME");
 
@@ -91,18 +101,28 @@ export function useMeetingRoom({
 
   const resolveParticipantName = useCallback(
     (identity: string): string => {
-      if (!appointment) return "A participant";
-      if (identity === appointment.doctor_id)
-        return appointment.doctor_name ?? "Doctor";
-      if (identity === appointment.nurse_id)
-        return appointment.nurse_name ?? "Nurse";
+      if (!appointmentDetails) return "A participant";
+      if (identity === appointmentDetails.doctor_id)
+        return (
+          appointmentDetails.doctor?.user?.display_name ??
+          appointmentDetails.doctor_name ??
+          "Doctor"
+        );
+      if (identity === appointmentDetails.nurse_id)
+        return (
+          appointmentDetails.nurse?.user?.display_name ??
+          appointmentDetails.nurse_name ??
+          "Nurse"
+        );
       if (identity === "family_member")
         return (
-          appointment.family_mem_name ?? appointment.patient_name ?? "Patient"
+          appointmentDetails.family_mem_name ??
+          appointmentDetails.patient_name ??
+          "Patient"
         );
       return "A participant";
     },
-    [appointment],
+    [appointmentDetails],
   );
 
   const showParticipantBanner = useCallback(
@@ -416,7 +436,7 @@ export function useMeetingRoom({
           leaveCall({
             object: {
               appointment_id: appointmentId,
-              room_id: appointment?.room_sid ?? "",
+              room_id: appointmentDetails?.room_sid ?? "",
               waiting_room_id: appointment?.waiting_room?.id ?? "",
             },
           });
