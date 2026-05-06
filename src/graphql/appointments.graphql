@@ -263,14 +263,93 @@ query GetAppointmentDetailsById($appointment_id: uuid!) {
   }
 }
 
-subscription SubscribeAppointment($appointment_id: uuid!) {
+subscription getAppointmentsDetailsByAppointmentId($appointment_id: uuid!) {
   appointments_by_pk(id: $appointment_id) {
     id
+    additional_note
+    time_slot_to
+    time_slot_from
+    patient_name
+    family_mem_name
+    meeting_link
     state
-    is_doctor_in_call
-    is_nurse_in_call
+    facility_account_id
     room_id
     room_sid
+    is_patient_remote
+    doctor_response
+    doctor_id
+    nurse_id
+    doctor_name
+    is_nurse_in_call
+    is_doctor_in_call
+    doctor {
+      user {
+        profile {
+          first_name
+          last_name
+          address {
+            city
+            address_lane
+            country
+            zip_code
+          }
+          timezone
+        }
+      }
+    }
+    nurse {
+      user {
+        profile {
+          first_name
+          last_name
+          address {
+            city
+            address_lane
+            country
+            zip_code
+          }
+          timezone
+        }
+      }
+    }
+    nurse_name
+    prescriptions(
+      order_by: { updated_at: desc }
+      where: { prescription_state: { _eq: "completed" } }
+    ) {
+      id
+      prescription_id
+      prescription_state
+      updated_at
+    }
+    soap_note_status
+    location {
+      location_name
+      address
+      facility_account {
+        facility_name
+      }
+    }
+    patient_vitals {
+      blood_pressure
+      created_at
+      heart_rate
+      height
+      id
+      oximetry
+      respiratory_rate
+      temperature
+      weight
+      blood_pressure_diastolic
+      blood_pressure_systolic
+      images
+      notes
+    }
+    waiting_room {
+      id
+      status
+    }
   }
 }
 

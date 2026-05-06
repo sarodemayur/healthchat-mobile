@@ -22,6 +22,7 @@ import type { RootStackParamList } from "../../navigation/types";
 import { useMeetingRoom } from "../../hooks/useMeetingRoom";
 import { ParticipantAvatar } from "../../components/meeting/ParticipantAvatar";
 import { ControlBtn } from "../../components/meeting/ControlBtn";
+import { AppointmentInfo } from "../../components/meeting/AppointmentInfo";
 import { getInitials } from "@/utils/functions";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Meeting">;
@@ -41,6 +42,7 @@ export function DoctorMeetingRoomScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [showActionsPanel, setShowActionsPanel] = useState(false);
   const [showDevicePanel, setShowDevicePanel] = useState(false);
+  const [showAppointmentInfo, setShowAppointmentInfo] = useState(false);
 
   const meeting = useMeetingRoom({
     appointmentId,
@@ -366,7 +368,16 @@ export function DoctorMeetingRoomScreen({ route, navigation }: Props) {
           </View>
           <ScrollView>
             {DOCTOR_ACTIONS.map((item) => (
-              <TouchableOpacity key={item} style={styles.actionItem}>
+              <TouchableOpacity
+                key={item}
+                style={styles.actionItem}
+                onPress={() => {
+                  if (item === "Appointment Info") {
+                    setShowActionsPanel(false);
+                    setShowAppointmentInfo(true);
+                  }
+                }}
+              >
                 <Text style={styles.actionItemText}>{item}</Text>
               </TouchableOpacity>
             ))}
@@ -394,6 +405,12 @@ export function DoctorMeetingRoomScreen({ route, navigation }: Props) {
           <Text style={styles.connectingText}>Connecting to meeting…</Text>
         </View>
       )}
+
+      <AppointmentInfo
+        visible={showAppointmentInfo}
+        appointment={appointment}
+        onClose={() => setShowAppointmentInfo(false)}
+      />
     </View>
   );
 }

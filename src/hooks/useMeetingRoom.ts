@@ -7,9 +7,9 @@ import {
 } from "react-native-twilio-video-webrtc";
 import { useAuth } from "../context/AuthContext";
 import {
-  GetAppointmentByIdSubscription,
-  useGetAppointmentByIdSubscription,
+  GetAppointmentsDetailsByAppointmentIdSubscription,
   useGetAppointmentDetailsByIdQuery,
+  useGetAppointmentsDetailsByAppointmentIdSubscription,
   useLeaveCallMutation,
 } from "../graphql/appointments.generated";
 import { getInitials } from "@/utils/functions";
@@ -26,7 +26,8 @@ interface UseMeetingRoomOptions {
   onDisconnect: () => void;
 }
 
-export type IMeetAppointment = GetAppointmentByIdSubscription["appointment"];
+export type IMeetAppointment =
+  GetAppointmentsDetailsByAppointmentIdSubscription["appointments_by_pk"];
 
 export function useMeetingRoom({
   appointmentId,
@@ -70,20 +71,25 @@ export function useMeetingRoom({
   const bannerAnim = useRef(new Animated.Value(0)).current;
   const bannerAnimRef = useRef<Animated.CompositeAnimation | null>(null);
 
-  const [{ data: appointmentData }] = useGetAppointmentByIdSubscription({
-    variables: { appointment_id: appointmentId },
-  });
+  const [{ data: appointmentData }] =
+    useGetAppointmentsDetailsByAppointmentIdSubscription({
+      variables: {
+        appointment_id: appointmentId,
+      },
+      pause: !appointmentId,
+    });
+
+  useEffect(() => {
+    if (!isEmpty(appointmentData)) {
+      setAppointment(appointmentData?.appointments_by_pk);
+    }
+  }, [appointmentData]);
   const [{ data }] = useGetAppointmentDetailsByIdQuery({
     variables: {
       appointment_id: appointmentId,
     },
   });
   const appointmentDetails = data?.appointment;
-  useEffect(() => {
-    if (!isEmpty(appointmentData)) {
-      setAppointment(appointmentData?.appointment);
-    }
-  }, [appointmentData]);
 
   const [, leaveCall] = useLeaveCallMutation();
 
