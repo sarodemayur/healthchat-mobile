@@ -125,6 +125,9 @@ export function DoctorMeetingRoomScreen({ route, navigation }: Props) {
   const isFamilyMemberInMain =
     focusedTrack != null && focusedTrack.participantSid === familyMemberSid;
 
+  const isNurseInMain =
+    focusedTrack != null && focusedTrack.participantSid === nurseSid;
+
   const mainParticipantLabel = isFamilyMemberInMain
     ? familyMemberSid
       ? (appointment?.patient_name ?? "Patient")
@@ -268,18 +271,20 @@ export function DoctorMeetingRoomScreen({ route, navigation }: Props) {
 
       {/* Top bar — Devices | Timer | Recording indicator */}
       <View style={[styles.topBar, { top: insets.top + 8 }]}>
-        <TouchableOpacity
-          style={styles.deviceBtn}
-          onPress={() => setShowDevicePanel((v) => !v)}
-        >
-          <MaterialCommunityIcons name="stethoscope" size={16} color="#333" />
-          <Text style={styles.deviceBtnText}>Devices</Text>
-          <Ionicons
-            name={showDevicePanel ? "chevron-up" : "chevron-down"}
-            size={14}
-            color="#333"
-          />
-        </TouchableOpacity>
+        {isNurseInMain && (
+          <TouchableOpacity
+            style={styles.deviceBtn}
+            onPress={() => setShowDevicePanel((v) => !v)}
+          >
+            <MaterialCommunityIcons name="stethoscope" size={16} color="#333" />
+            <Text style={styles.deviceBtnText}>Devices</Text>
+            <Ionicons
+              name={showDevicePanel ? "chevron-up" : "chevron-down"}
+              size={14}
+              color="#333"
+            />
+          </TouchableOpacity>
+        )}
 
         {status === "connected" && (
           <Text style={styles.callTimer}>{formatDuration(callDuration)}</Text>
@@ -295,28 +300,31 @@ export function DoctorMeetingRoomScreen({ route, navigation }: Props) {
       {/* Device dropdown panel */}
       {showDevicePanel && (
         <View style={[styles.devicePanel, { top: insets.top + 52 }]}>
-          {deviceItems.map(({ label, value, set, icon, dataType }) => (
-            <TouchableOpacity
-              key={label}
-              style={styles.deviceRow}
-              onPress={() => {
-                const next = !value;
-                set(next);
-                sendDataMessage({ type: dataType, status: next });
-              }}
-            >
-              <Ionicons
-                name={icon as any}
-                size={16}
-                color="#555"
-                style={{ width: 20 }}
-              />
-              <Text style={styles.deviceLabel}>{label}</Text>
-              <Text style={[styles.deviceState, value && styles.deviceStateOn]}>
-                {value ? "On" : "Off"}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {isNurseInMain &&
+            deviceItems.map(({ label, value, set, icon, dataType }) => (
+              <TouchableOpacity
+                key={label}
+                style={styles.deviceRow}
+                onPress={() => {
+                  const next = !value;
+                  set(next);
+                  sendDataMessage({ type: dataType, status: next });
+                }}
+              >
+                <Ionicons
+                  name={icon as any}
+                  size={16}
+                  color="#555"
+                  style={{ width: 20 }}
+                />
+                <Text style={styles.deviceLabel}>{label}</Text>
+                <Text
+                  style={[styles.deviceState, value && styles.deviceStateOn]}
+                >
+                  {value ? "On" : "Off"}
+                </Text>
+              </TouchableOpacity>
+            ))}
         </View>
       )}
 
