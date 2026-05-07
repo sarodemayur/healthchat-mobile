@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Animated,
   Modal,
@@ -24,6 +24,7 @@ import { ParticipantAvatar } from "../../components/meeting/ParticipantAvatar";
 import { ControlBtn } from "../../components/meeting/ControlBtn";
 import { AppointmentInfo } from "../../components/meeting/AppointmentInfo";
 import { getInitials } from "@/utils/functions";
+import { useUpdateAppointmentByIdMutation } from "@/graphql/appointments.generated";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Meeting">;
 
@@ -43,7 +44,7 @@ export function DoctorMeetingRoomScreen({ route, navigation }: Props) {
   const [showActionsPanel, setShowActionsPanel] = useState(false);
   const [showDevicePanel, setShowDevicePanel] = useState(false);
   const [showAppointmentInfo, setShowAppointmentInfo] = useState(false);
-
+  const [, updateAppointment] = useUpdateAppointmentByIdMutation();
   const meeting = useMeetingRoom({
     appointmentId,
     token,
@@ -83,6 +84,7 @@ export function DoctorMeetingRoomScreen({ route, navigation }: Props) {
     flipCamera,
     swapToMain,
     hangUp,
+    hasHungUpRef,
     sendDataMessage,
     formatDuration,
     resolveParticipantName,
@@ -135,6 +137,21 @@ export function DoctorMeetingRoomScreen({ route, navigation }: Props) {
     : nurseSid
       ? (appointment?.nurse_name ?? "Nurse")
       : "Nurse not joined";
+
+  useEffect(() => {
+    if (
+      appointment?.id &&
+      appointment.is_doctor_in_call === false &&
+      !hasHungUpRef.current
+    ) {
+      updateAppointment({
+        id: appointment.id as string,
+        _set: {
+          is_doctor_in_call: true,
+        },
+      });
+    }
+  }, [appointment]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>

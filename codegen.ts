@@ -17,7 +17,7 @@ const config: CodegenConfig = {
     enumsAsTypes: true,
   },
   schema: {
-    "http://192.168.0.129:5280/v1/graphql": {
+    "http://192.168.1.14:5280/v1/graphql": {
       headers: {
         "x-hasura-admin-secret":
           process.env.HASURA_ADMIN_SECRET ?? "NjcG3SpuPmuIqGom442F1bwk6Vi4qzLjpfYSQAfuZtv",

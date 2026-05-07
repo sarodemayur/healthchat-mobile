@@ -436,3 +436,12 @@ mutation LeaveCall($object: LeaveCallInput!) {
     ok
   }
 }
+
+mutation updateAppointmentById($id: uuid!, $_set: appointments_set_input!) {
+  update_appointments(where: { id: { _eq: $id } }, _set: $_set) {
+    affected_rows
+    returning {
+      id
+    }
+  }
+}

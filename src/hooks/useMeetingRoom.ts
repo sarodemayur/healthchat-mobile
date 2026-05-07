@@ -11,6 +11,7 @@ import {
   useGetAppointmentDetailsByIdQuery,
   useGetAppointmentsDetailsByAppointmentIdSubscription,
   useLeaveCallMutation,
+  useUpdateAppointmentByIdMutation,
 } from "../graphql/appointments.generated";
 import { getInitials } from "@/utils/functions";
 import { isEmpty } from "lodash";
@@ -38,10 +39,11 @@ export function useMeetingRoom({
   const { user } = useAuth();
   const [appointment, setAppointment] = useState<IMeetAppointment | null>(null);
   const twilioRef = useRef<TwilioVideo | null>(null);
+  const hasHungUpRef = useRef(false);
   const twilioCallbackRef = useCallback((ref: TwilioVideo | null) => {
     twilioRef.current = ref;
   }, []);
-
+  const [, updateAppointment] = useUpdateAppointmentByIdMutation();
   const [status, setStatus] = useState<
     "connecting" | "connected" | "disconnected"
   >("connecting");
@@ -351,6 +353,22 @@ export function useMeetingRoom({
   );
 
   const silentHangUp = useCallback(() => {
+    hasHungUpRef.current = true;
+    if (user?.role === "doctor") {
+      updateAppointment({
+        id: appointmentId,
+        _set: {
+          is_doctor_in_call: false,
+        },
+      });
+    } else if (user?.role === "nurse" || user?.role === "admin-nurse") {
+      updateAppointment({
+        id: appointmentId,
+        _set: {
+          is_nurse_in_call: false,
+        },
+      });
+    }
     leaveCall({
       object: {
         appointment_id: appointmentId,
@@ -359,7 +377,14 @@ export function useMeetingRoom({
       },
     });
     twilioRef.current?.disconnect();
-  }, [appointment, appointmentId, appointmentDetails, leaveCall]);
+  }, [
+    appointment,
+    appointmentId,
+    appointmentDetails,
+    leaveCall,
+    updateAppointment,
+    user?.role,
+  ]);
 
   const handleDataTrackMessageReceived = useCallback(
     ({ message }: DataTrackEventCbArgs) => {
@@ -506,6 +531,7 @@ export function useMeetingRoom({
     // refs
     twilioRef,
     twilioCallbackRef,
+    hasHungUpRef,
     // state
     status,
     isMuted,
