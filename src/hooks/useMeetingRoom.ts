@@ -63,6 +63,9 @@ export function useMeetingRoom({
   const [participantIdentities, setParticipantIdentities] = useState<
     Map<string, string>
   >(new Map());
+  const [nurseSid, setNurseSid] = useState<string | null>(null);
+  const [familyMemberSid, setFamilyMemberSid] = useState<string | null>(null);
+  const [doctorSid, setDoctorSid] = useState<string | null>(null);
   const [participantBanner, setParticipantBanner] = useState<string | null>(
     null,
   );
@@ -90,6 +93,24 @@ export function useMeetingRoom({
     },
   });
   const appointmentDetails = data?.appointment;
+
+  useEffect(() => {
+    let foundNurseSid: string | null = null;
+    let foundDoctorSid: string | null = null;
+    let foundFamilyMemberSid: string | null = null;
+    for (const [sid, identity] of participantIdentities) {
+      if (identity === appointmentDetails?.nurse_id) {
+        foundNurseSid = sid;
+      } else if (identity === appointmentDetails?.doctor_id) {
+        foundDoctorSid = sid;
+      } else if (identity === "family_member") {
+        foundFamilyMemberSid = sid;
+      }
+    }
+    setNurseSid(foundNurseSid);
+    setDoctorSid(foundDoctorSid);
+    setFamilyMemberSid(foundFamilyMemberSid);
+  }, [participantIdentities, appointmentDetails]);
 
   const [, leaveCall] = useLeaveCallMutation();
 
@@ -487,6 +508,9 @@ export function useMeetingRoom({
     focusedTrack,
     thumbnailTracks,
     participantIdentities,
+    nurseSid,
+    doctorSid,
+    familyMemberSid,
     disabledVideoTrackSids,
     // actions
     toggleMute,

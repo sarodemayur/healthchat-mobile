@@ -62,6 +62,8 @@ export function NurseMeetingRoomScreen({ route, navigation }: Props) {
     participantIdentities,
     disabledVideoTrackSids,
     appointment,
+    doctorSid,
+    familyMemberSid,
     toggleMute,
     toggleCamera,
     flipCamera,
@@ -82,6 +84,16 @@ export function NurseMeetingRoomScreen({ route, navigation }: Props) {
     handleDataTrackMessageReceived,
   } = meeting;
 
+  const isFamilyMemberInMain =
+    focusedTrack != null && focusedTrack.participantSid === familyMemberSid;
+
+  const mainParticipantLabel = isFamilyMemberInMain
+    ? familyMemberSid
+      ? (appointment?.patient_name ?? "Patient")
+      : "Patient not joined"
+    : doctorSid
+      ? (appointment?.doctor_name ?? "Doctor")
+      : "Doctor not joined";
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" backgroundColor={TEAL} />
@@ -126,7 +138,9 @@ export function NurseMeetingRoomScreen({ route, navigation }: Props) {
                   }}
                 />
                 {disabledVideoTrackSids.has(track.videoTrackSid) && (
-                  <View style={[StyleSheet.absoluteFill, styles.cameraOffOverlay]}>
+                  <View
+                    style={[StyleSheet.absoluteFill, styles.cameraOffOverlay]}
+                  >
                     <ParticipantAvatar
                       initials={getInitials(
                         resolveParticipantName(
@@ -154,11 +168,14 @@ export function NurseMeetingRoomScreen({ route, navigation }: Props) {
           })}
 
         <View style={styles.remoteMicOff}>
-          <Ionicons
-            name={isRemoteMuted ? "mic-off" : "mic"}
-            size={14}
-            color="#fff"
-          />
+          <View style={styles.remoteMicRow}>
+            <Ionicons
+              name={isRemoteMuted ? "mic-off" : "mic"}
+              size={14}
+              color="#fff"
+            />
+            <Text style={styles.remoteLabel}>{mainParticipantLabel}</Text>
+          </View>
         </View>
 
         {status === "disconnected" && (
@@ -410,7 +427,18 @@ const styles = StyleSheet.create({
     left: 16,
     backgroundColor: "rgba(0,0,0,0.55)",
     borderRadius: 8,
-    padding: 4,
+    padding: 6,
+    gap: 4,
+  },
+  remoteMicRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 4,
+  },
+  remoteLabel: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "600" as const,
   },
   pipLabel: {
     position: "absolute",
