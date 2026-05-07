@@ -145,8 +145,10 @@ export function DoctorMeetingRoomScreen({ route, navigation }: Props) {
         {allTracks.length === 0 && (
           <ParticipantAvatar
             initials={getInitials(
-              appointment?.nurse_name as string | undefined,
-              "N",
+              isFamilyMemberInMain
+                ? appointment?.patient_name
+                : appointment?.nurse_name,
+              "P",
             )}
           />
         )}
