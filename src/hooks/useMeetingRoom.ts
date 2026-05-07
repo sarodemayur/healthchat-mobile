@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Animated, Platform, PermissionsAndroid } from "react-native";
 import {
   TwilioVideo,
@@ -69,6 +69,10 @@ export function useMeetingRoom({
   const [participantBanner, setParticipantBanner] = useState<string | null>(
     null,
   );
+  const [localParticipant, setLocalParticipant] = useState<{
+    sid: string;
+    identity: string;
+  } | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const bannerAnim = useRef(new Animated.Value(0)).current;
@@ -228,10 +232,19 @@ export function useMeetingRoom({
     }
   }, [videoTracks, focusedTrackSid]);
 
-  const handleRoomDidConnect = useCallback(() => {
-    setStatus("connected");
-    startTimer();
-  }, [startTimer]);
+  const handleRoomDidConnect = useCallback(
+    ({
+      localParticipant: lp,
+    }: {
+      localParticipant: { sid: string; identity: string };
+      participants: { sid: string; identity: string }[];
+    }) => {
+      setStatus("connected");
+      setLocalParticipant(lp);
+      startTimer();
+    },
+    [startTimer],
+  );
 
   const handleRoomDidDisconnect = useCallback(
     ({ error }: { error?: string }) => {
@@ -332,6 +345,22 @@ export function useMeetingRoom({
     [],
   );
 
+  const localParticipantIdentity = useMemo(
+    () => localParticipant?.identity,
+    [localParticipant],
+  );
+
+  const silentHangUp = useCallback(() => {
+    leaveCall({
+      object: {
+        appointment_id: appointmentId,
+        room_id: appointmentDetails?.room_sid ?? "",
+        waiting_room_id: appointment?.waiting_room?.id ?? "",
+      },
+    });
+    twilioRef.current?.disconnect();
+  }, [appointment, appointmentId, appointmentDetails, leaveCall]);
+
   const handleDataTrackMessageReceived = useCallback(
     ({ message }: DataTrackEventCbArgs) => {
       try {
@@ -343,30 +372,32 @@ export function useMeetingRoom({
         };
         switch (msg.type) {
           case "mute":
-            if (!msg.identity || msg.identity === user?.id) {
+            if (!msg.identity || msg.identity === localParticipantIdentity) {
               twilioRef.current?.setLocalAudioEnabled(false).then(() => {
                 setIsMuted(true);
                 sendDataMessage({
                   type: "is_audio_on",
                   payload: { role: user?.role, status: false },
                 });
+                showParticipantBanner("Nurse has muted you");
               });
             }
             break;
           case "unmute":
-            if (!msg.identity || msg.identity === user?.id) {
+            if (!msg.identity || msg.identity === localParticipantIdentity) {
               twilioRef.current?.setLocalAudioEnabled(true).then(() => {
                 setIsMuted(false);
                 sendDataMessage({
                   type: "is_audio_on",
                   payload: { role: user?.role, status: true },
                 });
+                showParticipantBanner("Nurse has unmuted you");
               });
             }
             break;
           case "remove":
-            if (!msg.identity || msg.identity === user?.id) {
-              twilioRef.current?.disconnect();
+            if (!msg.identity || msg.identity === localParticipantIdentity) {
+              silentHangUp();
             }
             break;
           case "request-recording":
@@ -417,7 +448,13 @@ export function useMeetingRoom({
         // ignore malformed messages
       }
     },
-    [user?.id, user?.role, sendDataMessage],
+    [
+      user?.id,
+      user?.role,
+      sendDataMessage,
+      localParticipantIdentity,
+      silentHangUp,
+    ],
   );
 
   const toggleMute = useCallback(() => {
@@ -452,22 +489,9 @@ export function useMeetingRoom({
   const hangUp = useCallback(() => {
     Alert.alert("End Call", "Are you sure you want to leave this call?", [
       { text: "Cancel", style: "cancel" },
-      {
-        text: "Leave",
-        style: "destructive",
-        onPress: () => {
-          leaveCall({
-            object: {
-              appointment_id: appointmentId,
-              room_id: appointmentDetails?.room_sid ?? "",
-              waiting_room_id: appointment?.waiting_room?.id ?? "",
-            },
-          });
-          twilioRef.current?.disconnect();
-        },
-      },
+      { text: "Leave", style: "destructive", onPress: silentHangUp },
     ]);
-  }, [appointment, appointmentId, leaveCall]);
+  }, [silentHangUp]);
 
   const allTracks = Array.from(videoTracks.values());
   const focusedTrack =
@@ -498,6 +522,7 @@ export function useMeetingRoom({
     callDuration,
     participantBanner,
     bannerAnim,
+    localParticipant,
     // derived
     appointment,
     isCurrentUserDoctor,
